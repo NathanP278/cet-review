@@ -10,17 +10,32 @@ import { ExamResults, type SubjectScore } from "@/components/domain/ExamResults"
 import { Button } from "@/components/ui/button";
 import { Loader2, Flag, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { saveExamState } from "@/app/actions/exam";
+import { useRouter } from "next/navigation";
+import { useRef } from "react";
 
-const EXAM_DURATION_SECONDS = 7200; // 120 minutes
+interface ExamSessionClientProps {
+  attemptId: string;
+  initialQuestions: any[];
+  initialAnswers: Record<number, string>;
+  initialFlagged: number[];
+  initialRemainingSeconds: number;
+}
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function ExamSessionClient({ initialQuestions }: { initialQuestions: any[] }) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function ExamSessionClient({ 
+  attemptId, 
+  initialQuestions, 
+  initialAnswers, 
+  initialFlagged, 
+  initialRemainingSeconds 
+}: ExamSessionClientProps) {
+  const router = useRouter();
   const [questions] = useState<any[]>(initialQuestions);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [flagged, setFlagged] = useState<Set<number>>(new Set());
-
+  const [answers, setAnswers] = useState<Record<number, string>>(initialAnswers);
+  const [flagged, setFlagged] = useState<Set<number>>(new Set(initialFlagged));
+  
+  const remainingSecondsRef = useRef(initialRemainingSeconds);
   const [isFinished, setIsFinished] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [results, setResults] = useState<{
@@ -57,7 +72,16 @@ export function ExamSessionClient({ initialQuestions }: { initialQuestions: any[
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [questions.length]);
 
+  // Debounced Autosave
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (!isFinished && !isSubmitting) {
+        saveExamState(attemptId, answers, Array.from(flagged), remainingSecondsRef.current);
+      }
+    }, 2000); // Autosave 2 seconds after last change
 
+    return () => clearTimeout(handler);
+  }, [answers, flagged, attemptId, isFinished, isSubmitting]);
 
   const handleSelect = useCallback((optionId: string) => {
     setAnswers((prev) => ({ ...prev, [currentIndex]: optionId }));
@@ -79,58 +103,23 @@ export function ExamSessionClient({ initialQuestions }: { initialQuestions: any[
     if (isSubmitting) return;
     setIsSubmitting(true);
 
-    // Grade the exam
-    let totalScore = 0;
-    const subjectMap: Record<string, { score: number; total: number }> = {};
-
-    questions.forEach((q, idx) => {
-      // Safely extract subject name
-      let subjectName = "General";
-      if (
-        q.topics &&
-        !Array.isArray(q.topics) &&
-        q.topics.subjects &&
-        !Array.isArray(q.topics.subjects)
-      ) {
-        subjectName = q.topics.subjects.name;
-      }
-
-      if (!subjectMap[subjectName]) {
-        subjectMap[subjectName] = { score: 0, total: 0 };
-      }
-
-      subjectMap[subjectName].total += 1;
-
-      const userAnswer = answers[idx];
-      if (userAnswer === q.answer) {
-        totalScore += 1;
-        subjectMap[subjectName].score += 1;
-      }
-    });
-
-    const subjectScores: SubjectScore[] = Object.entries(subjectMap).map(([name, data]) => ({
-      name,
-      score: data.score,
-      total: data.total,
-    }));
-
-    setResults({ totalScore, subjectScores });
-
-    // Save to database
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) {
-      await supabase.from("mock_exam_attempts").insert({
-        user_id: user.id,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        score_data: { totalScore, totalQuestions: questions.length, subjectScores } as any,
-      });
+    // Save final state first just in case
+    await saveExamState(attemptId, answers, Array.from(flagged), remainingSecondsRef.current);
+    
+    // Call server action to grade
+    try {
+      // @ts-ignore
+      const { submitExam } = await import("@/app/actions/exam");
+      await submitExam(attemptId);
+    } catch (err) {
+      console.error("Submission failed", err);
     }
 
     setIsFinished(true);
     setIsSubmitting(false);
+
+    // Redirect to results page
+    router.push(`/exam/${attemptId}/results`);
   };
 
 
@@ -230,7 +219,11 @@ export function ExamSessionClient({ initialQuestions }: { initialQuestions: any[
               <Flag className={cn("h-4 w-4", flagged.has(currentIndex) ? "fill-current" : "")} />
               <span className="hidden sm:inline">Flag</span>
             </Button>
-            <ExamTimer initialSeconds={EXAM_DURATION_SECONDS} onExpire={handleSubmit} />
+            <ExamTimer 
+              initialSeconds={initialRemainingSeconds} 
+              onExpire={handleSubmit} 
+              onTick={(left) => { remainingSecondsRef.current = left; }}
+            />
           </div>
         </div>
 

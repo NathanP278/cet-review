@@ -34,6 +34,8 @@ export default async function SubjectHubPage({
 
   const categoryIds = categories?.map((c) => c.id) || [];
 
+  const { data: { user } } = await supabase.auth.getUser();
+
   let topics: { id: string; name: string }[] = [];
   if (categoryIds.length > 0) {
     const { data } = await supabase
@@ -44,16 +46,88 @@ export default async function SubjectHubPage({
     topics = data || [];
   }
 
-  // Generate progress for topics
+  // Fetch Subject Mastery
+  let overallAccuracy = 0;
+  if (user) {
+    const { data: subjectMastery } = await supabase
+      .from("subject_mastery_view")
+      .select("mastery_percentage")
+      .eq("user_id", user.id)
+      .eq("subject_id", subject_id)
+      .single();
+    if (subjectMastery && subjectMastery.mastery_percentage !== null) {
+      overallAccuracy = Math.round(subjectMastery.mastery_percentage);
+    }
+  }
+
+  // Fetch Topic Masteries
+  let topicMasteryMap: Record<string, number> = {};
+  if (user && topics.length > 0) {
+    const topicIds = topics.map((t) => t.id);
+    const { data: masteries } = await supabase
+      .from("topic_mastery_view")
+      .select("topic_id, mastery_percentage")
+      .eq("user_id", user.id)
+      .in("topic_id", topicIds);
+
+    if (masteries) {
+      topicMasteryMap = masteries.reduce((acc, curr) => {
+        if (curr.topic_id) {
+          acc[curr.topic_id] = curr.mastery_percentage ? Math.round(curr.mastery_percentage) : 0;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+    }
+  }
+
+  // Fetch Official Resources (Notes)
+  let officialNotesMap: Record<string, string> = {};
+  if (topics.length > 0) {
+    const topicIds = topics.map((t) => t.id);
+    const { data: resources } = await supabase
+      .from("topic_resources")
+      .select("topic_id, study_notes")
+      .in("topic_id", topicIds);
+
+    if (resources) {
+      officialNotesMap = resources.reduce((acc, curr) => {
+        if (curr.topic_id && curr.study_notes) {
+          acc[curr.topic_id] = curr.study_notes;
+        }
+        return acc;
+      }, {} as Record<string, string>);
+    }
+  }
+
+  // Fetch User Notes
+  let userNotesMap: Record<string, string> = {};
+  if (user && topics.length > 0) {
+    const topicIds = topics.map((t) => t.id);
+    const { data: uNotes } = await supabase
+      .from("user_notes")
+      .select("topic_id, content")
+      .eq("user_id", user.id)
+      .in("topic_id", topicIds);
+
+    if (uNotes) {
+      userNotesMap = uNotes.reduce((acc, curr) => {
+        if (curr.topic_id && curr.content) {
+          acc[curr.topic_id] = curr.content;
+        }
+        return acc;
+      }, {} as Record<string, string>);
+    }
+  }
+
+  // Generate progress and attach notes for topics
   const topicsWithMockProgress =
     topics?.map((t) => ({
       id: t.id,
       name: t.name,
-      progress: 0, // No fake progress
-      notes: `These are the notes for ${t.name}. They should cover fundamental concepts, formulas, and common pitfalls seen in the CET.`,
+      progress: topicMasteryMap[t.id] || 0,
+      notes: officialNotesMap[t.id] || null,
+      userNoteContent: userNotesMap[t.id] || null,
     })) || [];
-
-  const overallAccuracy = 0; // No fake progress
 
   return (
     <div className="flex flex-col gap-8 max-w-4xl mx-auto">

@@ -7,9 +7,8 @@ export interface StudyInsight {
 }
 
 export function generateInsights(
-  reviewHistory: any[],
-  userCards: any[],
-  subjects: any[]
+  reviewHistory: Record<string, unknown>[],
+  userCards: Record<string, unknown>[]
 ): StudyInsight[] {
   const insights: StudyInsight[] = [];
 
@@ -29,7 +28,7 @@ export function generateInsights(
   let eveningCorrect = 0;
   let eveningTotal = 0;
 
-  reviewHistory.forEach((r) => {
+  reviewHistory.forEach((r: Record<string, unknown>) => {
     const hour = new Date(r.reviewed_at).getHours();
     const isCorrect = r.rating === "good" || r.rating === "easy";
     if (hour >= 5 && hour < 12) {
@@ -63,7 +62,7 @@ export function generateInsights(
   // For simplicity since we don't have deeply joined data in this pure function,
   // we'll pass an aggregated map or calculate based on time_spent_secs
   let totalTime = 0;
-  reviewHistory.forEach(r => totalTime += (r.time_spent_secs || 0));
+  reviewHistory.forEach((r: Record<string, unknown>) => totalTime += ((r.time_spent_secs as number) || 0));
   const avgTime = totalTime / reviewHistory.length;
   
   if (avgTime < 5 && reviewHistory.length > 20) {
@@ -77,7 +76,7 @@ export function generateInsights(
   // 3. Learning Momentum
   // Calculate average retention from user_cards
   let totalRetention = 0;
-  userCards.forEach(c => totalRetention += (c.retention_score || 0));
+  userCards.forEach((c: Record<string, unknown>) => totalRetention += ((c.retention_score as number) || 0));
   const avgRetention = userCards.length > 0 ? totalRetention / userCards.length : 0;
 
   if (avgRetention > 0.85) {
@@ -106,27 +105,22 @@ export function generateInsights(
   return insights.slice(0, 3); // Max 3 insights
 }
 
-export function calculateMomentum(reviewHistory: any[]): "Improving" | "Stable" | "Declining" | "Needs Attention" {
-  if (!reviewHistory || reviewHistory.length < 10) return "Stable";
+export function calculateMomentum(
+  recentHistory: Record<string, unknown>[],
+  olderHistory: Record<string, unknown>[]
+): "Improving" | "Stable" | "Declining" | "Needs Attention" {
+  
+  const recentTotal = recentHistory.length;
+  let recentCorrect = 0;
+  const olderTotal = olderHistory.length;
+  let olderCorrect = 0;
 
-  // Compare last 7 days vs previous 7 days accuracy
-  const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-
-  let recentTotal = 0, recentCorrect = 0;
-  let olderTotal = 0, olderCorrect = 0;
-
-  reviewHistory.forEach(r => {
-    const d = new Date(r.reviewed_at);
-    const isCorrect = r.rating === "good" || r.rating === "easy";
-    if (d >= sevenDaysAgo) {
-      recentTotal++;
-      if (isCorrect) recentCorrect++;
-    } else if (d >= fourteenDaysAgo && d < sevenDaysAgo) {
-      olderTotal++;
-      if (isCorrect) olderCorrect++;
-    }
+  recentHistory.forEach((r: Record<string, unknown>) => {
+    if (r.rating === "good" || r.rating === "easy") recentCorrect++;
+  });
+  
+  olderHistory.forEach((r: Record<string, unknown>) => {
+    if (r.rating === "good" || r.rating === "easy") olderCorrect++;
   });
 
   if (recentTotal === 0 && olderTotal > 0) return "Declining";

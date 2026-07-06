@@ -1,15 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
 import { ReviewClient } from "./ReviewClient";
 import { redirect } from "next/navigation";
 import { getDailyReviewQueue } from "@/app/actions/sm2";
+import { getUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReviewSessionPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
 
   if (!user) {
     redirect("/login");

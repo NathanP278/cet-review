@@ -7,32 +7,37 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ReviewHeatmap } from "@/components/domain/ReviewHeatmap";
 
+import { getUser } from "@/lib/auth";
+
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
 
   if (!user) {
     redirect("/login");
   }
 
-  // Fetch some basic stats for the dashboard (mocked/aggregated for MVP)
+  // Fetch some basic stats for the dashboard (aggregated for MVP)
   // In a full app, we would query the user_cards for due cards and quiz_attempts for accuracy
   const { data: attemptsData } = await supabase
     .from("quiz_attempts")
-    .select("score, total")
+    .select("score, total, created_at")
     .eq("user_id", user.id);
 
-  const attempts = attemptsData as { score: number; total: number }[] | null;
+  const { data: mockExamsData } = await supabase
+    .from("mock_exam_attempts")
+    .select("id, score_data, created_at")
+    .eq("status", "completed")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
 
-  let totalScore = 0;
-  let totalQuestions = 0;
+  const attempts = attemptsData as { score: number; total: number; created_at: string }[] | null;
+  const mockExams = mockExamsData as any[] | null;
 
+  // Remove unused totalScore/totalQuestions
   if (attempts) {
-    attempts.forEach((attempt) => {
-      totalScore += attempt.score;
-      totalQuestions += attempt.total;
+    attempts.forEach(() => {
+      // Logic would go here for displaying accuracy if needed
     });
   }
 
@@ -50,15 +55,11 @@ export default async function DashboardPage() {
     .eq("user_id", user.id);
 
   let masteredCards = 0;
-  let learningCards = 0;
   let totalRetention = 0;
-  let leeches = 0;
 
   if (allCards) {
     allCards.forEach(card => {
       if (card.state === "review") masteredCards++;
-      if (card.state === "learning" || card.state === "relearning") learningCards++;
-      if (card.lapse_count >= 3) leeches++;
       totalRetention += card.retention_score;
     });
   }
@@ -70,20 +71,35 @@ export default async function DashboardPage() {
     .eq("id", user.id)
     .single();
 
-  // Fetch M16 Learning Stats
-  const { data: progressData } = await supabase
-    .from("user_progress")
-    .select("status, study_time_seconds")
+  // Fetch Topic Masteries for Learning Stats
+  const { data: topicMasteries } = await supabase
+    .from("topic_mastery_view")
+    .select("mastery_percentage")
     .eq("user_id", user.id);
 
-  const progressStats = { started: 0, completed: 0, time: 0 };
-  if (progressData) {
-    progressData.forEach((p) => {
-      if (p.status === "started") progressStats.started += 1;
-      if (p.status === "completed") progressStats.completed += 1;
-      progressStats.time += p.study_time_seconds || 0;
+  let topicsStarted = 0;
+  let topicsMastered = 0;
+
+  if (topicMasteries) {
+    topicMasteries.forEach(t => {
+      if (t.mastery_percentage !== null) {
+        if (t.mastery_percentage > 0) topicsStarted++;
+        if (t.mastery_percentage >= 80) topicsMastered++;
+      }
     });
   }
+
+  // Fetch total study time
+  const { data: timeData } = await supabase
+    .from("review_history")
+    .select("response_time_seconds")
+    .eq("user_id", user.id);
+
+  let totalStudyTimeSeconds = 0;
+  if (timeData) {
+    timeData.forEach(t => totalStudyTimeSeconds += t.response_time_seconds);
+  }
+  const progressStats = { started: topicsStarted, completed: topicsMastered, time: totalStudyTimeSeconds };
 
   const { count: notesCount } = await supabase
     .from("user_notes")
@@ -121,6 +137,28 @@ export default async function DashboardPage() {
   const streak = profile?.streak || 0;
   const cardsDueToday = dueCount || 0;
   const completedToday = reviewsCompletedToday || 0;
+
+  // Calculate CET Readiness
+  // Rough estimate: combine topic mastery % and recent mock exam scores
+  let cetReadiness = 0;
+  if (mockExams && mockExams.length > 0) {
+    const recentScores = mockExams.slice(0, 3).map((e) => e.score_data.totalScore / Math.max(1, e.score_data.totalQuestions));
+    const avgRecentMock = recentScores.reduce((a, b) => a + b, 0) / recentScores.length;
+    cetReadiness = Math.round(avgRecentMock * 100);
+  } else if (topicsStarted > 0) {
+    // Fallback to purely mastery-based readiness
+    cetReadiness = Math.round((topicsMastered / Math.max(1, topicsStarted)) * 50); // Cap at 50% if no exams taken
+  }
+
+  // Merge recent activity
+  const recentActivity = [];
+  if (attempts) {
+    attempts.forEach((a: any) => recentActivity.push({ type: 'quiz', score: a.score, total: a.total, date: new Date(a.created_at).getTime() }));
+  }
+  if (mockExams) {
+    mockExams.forEach((a: any) => recentActivity.push({ type: 'exam', id: a.id, score: a.score_data.totalScore, total: a.score_data.totalQuestions, date: new Date(a.created_at).getTime() }));
+  }
+  recentActivity.sort((a, b) => b.date - a.date);
 
   return (
     <div className="flex flex-col gap-8 max-w-5xl mx-auto">
@@ -161,11 +199,30 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="col-span-1 md:col-span-2">
+        <Card className="col-span-1 border-t-4 border-t-[var(--color-secondary)]">
+          <CardHeader className="pb-2">
+            <CardTitle>CET Readiness</CardTitle>
+            <CardDescription>Based on Mock Exams & Mastery</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center py-6 gap-4">
+            <AccuracyRing accuracy={cetReadiness} size={140} label="Readiness" />
+            <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
+              <BookOpen className="h-4 w-4 text-[var(--color-secondary)]" />
+              <span>{mockExams?.length || 0} Exams Taken</span>
+            </div>
+            {(!mockExams || mockExams.length === 0) && (
+              <Link href="/exam">
+                <Button variant="outline" size="sm" className="mt-2 text-xs h-8">Take a Mock Exam</Button>
+              </Link>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="col-span-1 md:col-span-1">
           <CardHeader>
-            <CardTitle>Today&apos;s Review Plan</CardTitle>
+            <CardTitle>Today&apos;s Goal</CardTitle>
             <CardDescription>
-              {completedToday} / {dailyLimit} daily goal completed
+              {completedToday} / {dailyLimit} reviews completed
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
@@ -264,11 +321,10 @@ export default async function DashboardPage() {
         <h2 className="text-xl font-bold font-display mb-4">Recent Activity</h2>
         <Card>
           <CardContent className="p-0">
-            {attempts && attempts.length > 0 ? (
+            {recentActivity.length > 0 ? (
               <div className="divide-y divide-[var(--border)]">
-                {attempts
-                  .slice(-5)
-                  .reverse()
+                {recentActivity
+                  .slice(0, 5)
                   .map((attempt, i) => (
                     <div
                       key={i}
@@ -278,11 +334,20 @@ export default async function DashboardPage() {
                         <div
                           className={`w-2 h-2 rounded-full ${attempt.score / attempt.total >= 0.7 ? "bg-[var(--color-success)]" : "bg-[var(--color-warning)]"}`}
                         />
-                        <span className="font-medium">Mixed Practice Quiz</span>
+                        <span className="font-medium">
+                          {attempt.type === "exam" ? "Mock Exam" : "Practice Quiz"}
+                        </span>
                       </div>
-                      <span className="text-sm font-semibold text-[var(--muted)]">
-                        {attempt.score} / {attempt.total}
-                      </span>
+                      <div className="flex items-center gap-4">
+                        <span className="text-sm font-semibold text-[var(--muted)]">
+                          {attempt.score} / {attempt.total}
+                        </span>
+                        {attempt.type === "exam" && attempt.id && (
+                          <Link href={`/exam/${attempt.id}/results`}>
+                            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs">View</Button>
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   ))}
               </div>

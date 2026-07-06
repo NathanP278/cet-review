@@ -7,10 +7,11 @@ import { Clock } from "lucide-react";
 export interface ExamTimerProps {
   initialSeconds: number;
   onExpire: () => void;
+  onTick?: (timeLeft: number) => void;
   className?: string;
 }
 
-export function ExamTimer({ initialSeconds, onExpire, className }: ExamTimerProps) {
+export function ExamTimer({ initialSeconds, onExpire, onTick, className }: ExamTimerProps) {
   const [timeLeft, setTimeLeft] = useState(initialSeconds);
 
   useEffect(() => {
@@ -21,11 +22,15 @@ export function ExamTimer({ initialSeconds, onExpire, className }: ExamTimerProp
     }
 
     const intervalId = setInterval(() => {
-      setTimeLeft((t) => t - 1);
+      setTimeLeft((t) => {
+        const next = t - 1;
+        if (onTick) onTick(next);
+        return next;
+      });
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, [timeLeft, onExpire]);
+  }, [timeLeft, onExpire, onTick]);
 
   // Format MM:SS or HH:MM:SS
   const formatTime = (totalSeconds: number) => {

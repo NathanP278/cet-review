@@ -10,10 +10,13 @@ import { LogOut, User, Bell, Shield, Loader2 } from "lucide-react";
 export default function SettingsPage() {
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [accountStatus, setAccountStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [newEmail, setNewEmail] = useState("");
 
   useEffect(() => {
     async function loadProfile() {
@@ -21,6 +24,7 @@ export default function SettingsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setEmail(user.email ?? null);
+        setNewEmail(user.email ?? "");
         const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
         if (data) setProfile(data);
       }
@@ -36,14 +40,44 @@ export default function SettingsPage() {
     router.push("/login");
   };
 
-  const updatePreference = async (key: string, value: any) => {
+  const updatePreference = async (key: string, value: string | number | boolean) => {
     if (!profile) return;
     setSaving(true);
     const updated = { ...profile, [key]: value };
     setProfile(updated);
     const supabase = createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await supabase.from("profiles").update({ [key]: value } as any).eq("id", profile.id);
+    await supabase.from("profiles").update({ [key]: value }).eq("id", profile.id);
+    setSaving(false);
+  };
+
+  const handleUpdateAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAccountStatus(null);
+    setSaving(true);
+    const supabase = createClient();
+    
+    const updates: { email?: string; password?: string } = {};
+    if (newEmail && newEmail !== email) updates.email = newEmail;
+    if (newPassword && newPassword.length >= 8) updates.password = newPassword;
+    else if (newPassword && newPassword.length > 0 && newPassword.length < 8) {
+      setAccountStatus({ type: 'error', msg: 'Password must be at least 8 characters.' });
+      setSaving(false);
+      return;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      setSaving(false);
+      return;
+    }
+
+    const { error } = await supabase.auth.updateUser(updates);
+    if (error) {
+      setAccountStatus({ type: 'error', msg: error.message });
+    } else {
+      setAccountStatus({ type: 'success', msg: 'Account updated successfully.' });
+      if (updates.email) setEmail(updates.email);
+      setNewPassword("");
+    }
     setSaving(false);
   };
 
@@ -57,7 +91,7 @@ export default function SettingsPage() {
       a.download = `cet_export_${new Date().toISOString().split("T")[0]}.json`;
       a.click();
       window.URL.revokeObjectURL(url);
-    } catch (e) {
+    } catch {
       alert("Failed to export data");
     }
   };
@@ -101,13 +135,42 @@ export default function SettingsPage() {
               <CardTitle>Account Information</CardTitle>
               <CardDescription>Your personal details and login credentials.</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-[var(--muted)]">Email Address</label>
-                <div className="px-4 py-2 bg-[var(--color-slate-100)] dark:bg-[var(--color-slate-800)] border border-[var(--border)] rounded-md font-medium">
-                  {email || "Unknown"}
+            <CardContent>
+              <form onSubmit={handleUpdateAccount} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-semibold text-[var(--muted)]">Email Address</label>
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
+                  />
                 </div>
-              </div>
+                
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-semibold text-[var(--muted)]">New Password</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Leave blank to keep current"
+                    className="flex h-10 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] transition-all"
+                  />
+                </div>
+
+                {accountStatus && (
+                  <p className={`text-sm text-center p-2 rounded-md ${accountStatus.type === 'error' ? 'bg-[var(--color-danger-light)]/10 text-[var(--color-danger)] border border-[var(--color-danger-light)]' : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-800'}`}>
+                    {accountStatus.msg}
+                  </p>
+                )}
+
+                <div className="flex justify-end mt-2">
+                  <Button type="submit" disabled={saving}>
+                    {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save Changes
+                  </Button>
+                </div>
+              </form>
             </CardContent>
           </Card>
 

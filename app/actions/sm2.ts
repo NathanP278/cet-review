@@ -104,7 +104,7 @@ export async function processReviewAction(userCardId: string, rating: ReviewRati
 /**
  * Generates the intelligent Daily Review Queue
  */
-export async function getDailyReviewQueue(limit?: number) {
+export async function getDailyReviewQueue(limit?: number, offset: number = 0) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -119,12 +119,13 @@ export async function getDailyReviewQueue(limit?: number) {
   const reviewLimit = limit || profile?.daily_review_limit || 50;
   
   const now = new Date().toISOString();
+  const fetchLimit = reviewLimit * 2; // Fetch 2x to shuffle
 
   // 1. Overdue & Due Cards (highest priority)
   // We prioritize 'relearning' > 'learning' > 'review'
   // and prioritize cards with higher lapse_counts (leeches/frequently forgotten)
   // Fetch a larger pool to interleave
-  let { data: cards, error } = await supabase
+  const { data: cards, error } = await supabase
     .from("user_cards")
     .select(`
       id,
@@ -153,7 +154,7 @@ export async function getDailyReviewQueue(limit?: number) {
     .lte("next_review", now)
     .order("lapse_count", { ascending: false }) // Prioritize forgotten
     .order("next_review", { ascending: true }) // Then by oldest due
-    .limit(reviewLimit * 2); // Fetch 2x to shuffle
+    .range(offset, offset + fetchLimit - 1);
 
   if (error || !cards) {
     throw new Error("Failed to generate queue");
@@ -161,10 +162,9 @@ export async function getDailyReviewQueue(limit?: number) {
 
   // Smart Review Order: Interleaving
   // Group cards by topic_id (or subject_id)
-  const groupedCards = new Map<string, any[]>();
+  const groupedCards = new Map<string, Record<string, unknown>[]>();
   
   cards.forEach(card => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const q = Array.isArray(card.questions) ? card.questions[0] : card.questions;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const t = q && Array.isArray((q as any).topics) ? (q as any).topics[0] : (q as any).topics;
@@ -176,7 +176,7 @@ export async function getDailyReviewQueue(limit?: number) {
     groupedCards.get(topicId)!.push(card);
   });
 
-  const interleavedQueue: any[] = [];
+  const interleavedQueue: Record<string, unknown>[] = [];
   const keys = Array.from(groupedCards.keys());
   
   // Round robin extraction
@@ -194,4 +194,135 @@ export async function getDailyReviewQueue(limit?: number) {
   }
 
   return interleavedQueue;
+}
+
+/**
+ * Processes a batch of SM-2 updates efficiently.
+ * Used at the end of a quiz attempt to minimize Supabase roundtrips.
+ */
+export async function processBatchSM2Updates(
+  updates: Array<{ questionId: string; quality: number; responseTimeSeconds: number }>
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  if (updates.length === 0) return { success: true };
+
+  // Fetch all existing cards for these questions
+  const questionIds = updates.map((u) => u.questionId);
+  const { data: existingCards } = await supabase
+    .from("user_cards")
+    .select("*")
+    .in("question_id", questionIds)
+    .eq("user_id", user.id);
+
+  const cardsToUpsert: any[] = [];
+  const historyToInsert: any[] = [];
+  const now = new Date().toISOString();
+
+  for (const update of updates) {
+    const card = existingCards?.find((c) => c.question_id === update.questionId);
+    
+    // Default values for new cards
+    let currentState: CardState = "new";
+    let repetitions = 0;
+    let interval = 0;
+    let easeFactor = 2.5;
+    let lapseCount = 0;
+    let totalReviews = 0;
+    let averageResponseTime = 0;
+
+    if (card) {
+      currentState = card.state as CardState;
+      repetitions = card.repetitions;
+      interval = card.interval;
+      easeFactor = card.ease_factor;
+      lapseCount = card.lapse_count;
+      totalReviews = card.total_reviews;
+      averageResponseTime = card.average_response_time;
+    }
+
+    // Map quality 1-4 to rating
+    let rating: ReviewRating = "good";
+    if (update.quality <= 1) rating = "again";
+    else if (update.quality === 2) rating = "hard";
+    else if (update.quality === 3) rating = "good";
+    else if (update.quality >= 4) rating = "easy";
+
+    const sm2Result = calculateSM2(
+      rating,
+      currentState,
+      repetitions,
+      interval,
+      easeFactor,
+      lapseCount
+    );
+
+    const nextReviewDate = new Date();
+    if (sm2Result.interval > 0) {
+      nextReviewDate.setDate(nextReviewDate.getDate() + sm2Result.interval);
+    } else {
+      nextReviewDate.setMinutes(nextReviewDate.getMinutes() + 10);
+    }
+
+    const newTotalReviews = totalReviews + 1;
+    const newAverageResponseTime =
+      (averageResponseTime * totalReviews + update.responseTimeSeconds) / newTotalReviews;
+
+    const newRetentionScore = sm2Result.lapseCount === 0 ? 100 : Math.max(0, 100 - sm2Result.lapseCount * 15);
+
+    const upsertPayload = {
+      ...(card ? { id: card.id } : {}), // include ID if updating
+      user_id: user.id,
+      question_id: update.questionId,
+      interval: sm2Result.interval,
+      repetitions: sm2Result.repetitions,
+      ease_factor: sm2Result.easeFactor,
+      next_review: nextReviewDate.toISOString(),
+      updated_at: now,
+      state: sm2Result.state as DbCardState,
+      last_review: now,
+      lapse_count: sm2Result.lapseCount,
+      total_reviews: newTotalReviews,
+      average_response_time: newAverageResponseTime,
+      retention_score: newRetentionScore,
+    };
+    
+    cardsToUpsert.push(upsertPayload);
+
+    historyToInsert.push({
+      user_id: user.id,
+      question_id: update.questionId,
+      reviewed_at: now,
+      rating,
+      response_time_seconds: update.responseTimeSeconds,
+      interval_days: sm2Result.interval,
+      ease_factor: sm2Result.easeFactor,
+    });
+  }
+
+  // Perform bulk upsert
+  const { error: upsertError } = await supabase.from("user_cards").upsert(cardsToUpsert, {
+    onConflict: "user_id, question_id",
+  });
+
+  if (upsertError) {
+    console.error("Bulk upsert cards failed:", upsertError);
+    throw new Error("Failed to process SM2 batch");
+  }
+
+  // Perform bulk insert
+  const { error: historyError } = await supabase.from("review_history").insert(historyToInsert);
+
+  if (historyError) {
+    console.error("Bulk insert history failed:", historyError);
+  }
+
+  return { success: true };
 }

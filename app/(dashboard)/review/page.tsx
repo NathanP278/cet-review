@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PlayCircle, Clock, CalendarDays, BarChart3, AlertCircle } from "lucide-react";
+import { PlayCircle, Clock, CalendarDays, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ReviewHeatmap } from "@/components/domain/ReviewHeatmap";

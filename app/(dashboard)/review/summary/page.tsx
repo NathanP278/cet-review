@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, Clock, Target, ArrowRight, Zap } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getUser } from "@/lib/auth";
 
 export default async function ReviewSummaryPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUser();
 
   if (!user) {
     redirect("/login");

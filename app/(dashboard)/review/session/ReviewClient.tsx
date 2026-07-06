@@ -5,7 +5,6 @@ import { Flashcard } from "@/components/domain/Flashcard";
 import { processReviewAction } from "@/app/actions/sm2";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -120,8 +119,6 @@ export function ReviewClient({ initialCards }: { initialCards: any[] }) {
         )}
         <Flashcard
           key={currentCard.id}
-          cardId={currentCard.id}
-          questionId={question?.id || ""}
           frontContent={question?.question_text || "Missing Question"}
           backContent={question?.correct_answer || "Missing Answer"}
           explanation={question?.explanation}

@@ -16,8 +16,6 @@ export interface FlashcardProps {
 }
 
 export function Flashcard({
-  cardId,
-  questionId,
   frontContent,
   backContent,
   explanation,
@@ -25,16 +23,8 @@ export function Flashcard({
 }: FlashcardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  const [startTime, setStartTime] = useState<number>(Date.now());
+  const [startTime] = useState(() => Date.now());
   const controls = useAnimation();
-
-  // Reset state when props change (new card)
-  useEffect(() => {
-    setIsFlipped(false);
-    setShowHint(false);
-    setStartTime(Date.now());
-    controls.set({ x: 0, opacity: 1, rotate: 0 });
-  }, [cardId, questionId, controls]);
 
   const handleFlip = () => {
     if (!isFlipped) {
@@ -58,7 +48,7 @@ export function Flashcard({
   };
 
   // Drag Gesture using Framer Motion
-  const handleDragEnd = (event: any, info: PanInfo) => {
+  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     if (!isFlipped) return; // Only allow swipe after reveal
     
     const mx = info.offset.x;
@@ -83,26 +73,20 @@ export function Flashcard({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
-      if (!isFlipped && (e.code === "Space" || e.code === "Enter")) {
+      if (e.code === "Space" && !isFlipped) {
         e.preventDefault();
         handleFlip();
       } else if (isFlipped) {
-        const keyMap: Record<string, "again" | "hard" | "good" | "easy"> = {
-          Digit1: "again",
-          Digit2: "hard",
-          Digit3: "good",
-          Digit4: "easy",
-        };
-        if (e.code in keyMap) {
-          e.preventDefault();
-          handleRate(keyMap[e.code]);
-        }
+        if (e.code === "Digit1") handleRate("again");
+        if (e.code === "Digit2") handleRate("hard");
+        if (e.code === "Digit3") handleRate("good");
+        if (e.code === "Digit4") handleRate("easy");
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isFlipped, onRate]);
+  }, [isFlipped]);
 
   return (
     <div className="flex flex-col items-center w-full max-w-2xl mx-auto px-4">

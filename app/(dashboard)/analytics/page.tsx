@@ -5,12 +5,11 @@ import { MemoryForecast } from "@/components/domain/MemoryForecast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AlertCircle, Target, TrendingUp, Zap } from "lucide-react";
 import { generateInsights, calculateMomentum } from "@/lib/insights";
+import { getUser } from "@/lib/auth";
 
 export default async function AnalyticsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
 
   if (!user) {
     return null;

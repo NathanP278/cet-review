@@ -47,7 +47,7 @@ export function ReviewHeatmap({ data, days = 90 }: ReviewHeatmapProps) {
     <div className="w-full overflow-x-auto pb-2">
       <div className="flex flex-col gap-1 min-w-max">
         <div className="flex gap-1">
-          {heatmapData.grid.map((cell, i) => (
+          {heatmapData.grid.map((cell) => (
             <div
               key={cell.date}
               className={cn(

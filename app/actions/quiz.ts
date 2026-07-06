@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { processBatchSM2Updates } from "./sm2";
 
 export interface QuizFilters {
   subjectId?: string;
@@ -141,23 +142,25 @@ export async function submitQuizAttempt(submissions: QuizSubmission[]): Promise<
   });
 
   // 1. Record the overall attempt
-  await supabase.from("quiz_attempts").insert({
+  const { data: attemptData, error: insertError } = await supabase.from("quiz_attempts").insert({
     user_id: user.id,
     score,
     total: submissions.length,
-    // Store JSON representation of the attempt for detailed history
-    // We would need to add `details` column, but for now we skip or use mock exam attempts structure
-  });
+    details: results as any // Store JSON representation of the attempt for detailed history
+  }).select().single();
 
-  // 2. Process SM-2 Spaced Repetition (simplified for MVP)
-  // Normally this happens asynchronously or in a batch
-  for (const res of results) {
-    // Quality scale: 0-5. 
-    // 5 = perfect response, 0 = complete blackout
-    // For this MVP, correct = 4, incorrect = 1.
-    const quality = res.isCorrect ? 4 : 1;
-    await processSM2Update(supabase, user.id, res.questionId, quality);
+  if (insertError) {
+    console.error("Failed to insert quiz attempt:", insertError);
   }
+
+  // 2. Process SM-2 Spaced Repetition (Batched)
+  const sm2Updates = results.map(res => ({
+    questionId: res.questionId,
+    quality: res.isCorrect ? 4 : 1, // 5 = perfect response, 0 = complete blackout. For MVP: correct = 4, incorrect = 1.
+    responseTimeSeconds: res.timeSpent
+  }));
+
+  await processBatchSM2Updates(sm2Updates);
 
   return {
     score,
@@ -166,59 +169,4 @@ export async function submitQuizAttempt(submissions: QuizSubmission[]): Promise<
   };
 }
 
-/**
- * Core SM-2 Spaced Repetition logic.
- * Updates user_cards table.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function processSM2Update(supabase: any, userId: string, questionId: string, quality: number) {
-  // Fetch existing card state
-  const { data: card } = await supabase
-    .from("user_cards")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("question_id", questionId)
-    .single();
 
-  let repetitions = card ? card.repetitions : 0;
-  let interval = card ? card.interval : 0;
-  let easeFactor = card ? card.ease_factor : 2.5;
-
-  if (quality >= 3) {
-    if (repetitions === 0) {
-      interval = 1;
-    } else if (repetitions === 1) {
-      interval = 6;
-    } else {
-      interval = Math.round(interval * easeFactor);
-    }
-    repetitions += 1;
-  } else {
-    repetitions = 0;
-    interval = 1;
-  }
-
-  easeFactor = easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
-  if (easeFactor < 1.3) easeFactor = 1.3;
-
-  const nextReview = new Date();
-  nextReview.setDate(nextReview.getDate() + interval);
-
-  if (card) {
-    await supabase.from("user_cards").update({
-      interval,
-      ease_factor: easeFactor,
-      repetitions,
-      next_review: nextReview.toISOString()
-    }).eq("id", card.id);
-  } else {
-    await supabase.from("user_cards").insert({
-      user_id: userId,
-      question_id: questionId,
-      interval,
-      ease_factor: easeFactor,
-      repetitions,
-      next_review: nextReview.toISOString()
-    });
-  }
-}

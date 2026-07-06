@@ -1,25 +1,19 @@
 import { Sidebar } from "@/components/domain/Sidebar";
 import { TopBar } from "@/components/domain/TopBar";
-import { createClient } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/auth";
+import { SessionManager } from "@/components/domain/SessionManager";
+import { cookies } from "next/headers";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const profile = await getProfile();
+  const streak = profile?.streak || 0;
 
-  let streak = 0;
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("streak")
-      .eq("id", user.id)
-      .single();
-    if (profile) streak = profile.streak || 0;
-  }
+  const cookieStore = await cookies();
+  const keepSignedIn = cookieStore.get("keep_signed_in")?.value === "true";
 
   return (
     <div className="flex h-screen w-screen overflow-hidden">
+      <SessionManager keepSignedIn={keepSignedIn} />
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar streak={streak} />

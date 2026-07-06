@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronUp, PlayCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, PlayCircle, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { NotesEditor } from "./NotesEditor";
 
 
 export interface TopicProps {
@@ -12,13 +13,14 @@ export interface TopicProps {
   name: string;
   progress: number; // 0 to 100
   notes: string | null;
+  userNoteContent?: string | null;
 }
 
 export function TopicAccordion({ topic }: { topic: TopicProps }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="border border-[var(--border)] rounded-lg bg-[var(--surface)] overflow-hidden">
+    <div className="border border-[var(--border)] rounded-lg bg-[var(--surface)] overflow-hidden flex flex-col">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between p-4 hover:bg-[var(--color-slate-100)] dark:hover:bg-[var(--color-slate-800)] transition-colors focus:outline-none"
@@ -39,17 +41,34 @@ export function TopicAccordion({ topic }: { topic: TopicProps }) {
 
       {isOpen && (
         <div className="p-4 border-t border-[var(--border)] bg-[var(--background)] animate-in slide-in-from-top-2 duration-200">
-          <div className="prose prose-sm dark:prose-invert max-w-none text-[var(--muted)] mb-4">
-            {topic.notes ? (
-              <p>{topic.notes}</p>
-            ) : (
-              <p>
-                No study notes available for this topic yet. Jump into practice to build your
-                mastery!
-              </p>
-            )}
+          <div className="flex flex-col md:flex-row gap-6 mb-6">
+            {/* Official Notes */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-3">
+                <BookOpen className="h-5 w-5 text-[var(--color-primary)]" />
+                <h5 className="font-semibold text-[var(--foreground)]">Official Study Notes</h5>
+              </div>
+              <div className="prose prose-sm dark:prose-invert max-w-none text-[var(--muted)]">
+                {topic.notes ? (
+                  <p>{topic.notes}</p>
+                ) : (
+                  <p className="italic">
+                    No official study notes available for this topic yet.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Personal Notes */}
+            <div className="flex-1 min-w-0 md:border-l md:border-[var(--border)] md:pl-6">
+              <NotesEditor 
+                topicId={topic.id} 
+                initialContent={topic.userNoteContent || ""} 
+              />
+            </div>
           </div>
-          <div className="flex justify-end gap-2">
+
+          <div className="flex justify-end gap-2 pt-4 border-t border-[var(--border)]">
             <Link href="/review" passHref>
               <Button variant="outline" size="sm">
                 Spaced Repetition
