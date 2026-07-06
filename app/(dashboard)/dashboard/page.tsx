@@ -149,7 +149,7 @@ export default async function DashboardPage() {
   const insights = await generateStudyInsights(user.id, readinessMetrics);
 
   // Merge recent activity
-  const recentActivity = [];
+  const recentActivity: { type: string; id?: string; score: number; total: number; date: number }[] = [];
   if (attempts) {
     attempts.forEach((a: any) => recentActivity.push({ type: 'quiz', score: a.score, total: a.total, date: new Date(a.created_at).getTime() }));
   }
