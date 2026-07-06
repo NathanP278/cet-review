@@ -15,6 +15,7 @@ export default function PracticePage() {
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [answers, setAnswers] = useState<string[]>([]);
   const [isRevealed, setIsRevealed] = useState(false);
   const [score, setScore] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
@@ -53,6 +54,7 @@ export default function PracticePage() {
       setScore((s) => s + 1);
     }
 
+    setAnswers((prev) => [...prev, selectedOption]);
     setIsRevealed(true);
   };
 
@@ -74,12 +76,31 @@ export default function PracticePage() {
     } = await supabase.auth.getUser();
 
     if (user) {
+      const finalScore = score + (selectedOption === questions[currentIndex].answer ? 1 : 0);
+
+      // 1. Save the quiz attempt
       await supabase.from("quiz_attempts").insert({
         user_id: user.id,
-        topic_id: questions[0]?.topic_id, // naive for MVP mixed quiz
-        score: score + (selectedOption === questions[currentIndex].answer ? 1 : 0),
+        topic_id: questions[0]?.topic_id,
+        score: finalScore,
         total: questions.length,
       });
+
+      // 2. Mistake -> Flashcard Pipeline (M7)
+      const wrongQuestions = questions.filter((q, idx) => {
+        const userAnswer = answers[idx] || (idx === currentIndex ? selectedOption : null);
+        return userAnswer !== q.answer;
+      });
+
+      for (const q of wrongQuestions) {
+        await supabase.from("user_cards").upsert({
+          user_id: user.id,
+          question_id: q.id,
+          interval: 0,
+          ease_factor: 2.5,
+          next_review: new Date().toISOString(),
+        });
+      }
     }
   };
 
@@ -108,6 +129,7 @@ export default function PracticePage() {
         onRetry={() => {
           setCurrentIndex(0);
           setScore(0);
+          setAnswers([]);
           setIsFinished(false);
           setSelectedOption(null);
           setIsRevealed(false);

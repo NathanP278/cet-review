@@ -33,9 +33,17 @@ export default async function DashboardPage() {
     });
   }
 
+  // Fetch the count of flashcards due for review today
+  const now = new Date().toISOString();
+  const { count: dueCount } = await supabase
+    .from("user_cards")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .lte("next_review", now);
+
   const overallAccuracy = totalQuestions > 0 ? Math.round((totalScore / totalQuestions) * 100) : 0;
-  const cardsDueToday = 24; // Mock value for MVP
-  const streak = 3; // Mock value
+  const cardsDueToday = dueCount || 0;
+  const streak = 3; // Mock value for MVP since streak calculation requires a complex query of login dates
 
   return (
     <div className="flex flex-col gap-8 max-w-5xl mx-auto">
