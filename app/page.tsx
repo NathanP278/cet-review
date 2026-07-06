@@ -96,11 +96,103 @@ export default function Home() {
             </p>
           </div>
         </div>
+
+        {/* FAQ Section */}
+        <div className="max-w-3xl mx-auto w-full mt-32 text-left">
+          <div className="text-center mb-12">
+            <h2 className="font-display text-3xl font-bold">Frequently Asked Questions</h2>
+            <p className="text-[var(--muted)] mt-2">
+              Everything you need to know about the platform.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="border border-[var(--border)] bg-[var(--surface)] p-6 rounded-xl">
+              <h4 className="font-semibold text-lg mb-2">How does Spaced Repetition work?</h4>
+              <p className="text-[var(--muted)] leading-relaxed">
+                We use the SM-2 algorithm to calculate the exact moment your brain is about to
+                forget a concept. By reviewing it right at that moment, it cements the knowledge
+                into your long-term memory much faster than traditional cramming.
+              </p>
+            </div>
+
+            <div className="border border-[var(--border)] bg-[var(--surface)] p-6 rounded-xl">
+              <h4 className="font-semibold text-lg mb-2">
+                Are the mock exams timed exactly like the real UPCAT?
+              </h4>
+              <p className="text-[var(--muted)] leading-relaxed">
+                Yes! The Mock Exam Engine strictly enforces the time limits to build your endurance
+                and time management skills under pressure.
+              </p>
+            </div>
+
+            <div className="border border-[var(--border)] bg-[var(--surface)] p-6 rounded-xl">
+              <h4 className="font-semibold text-lg mb-2">Is the platform free?</h4>
+              <p className="text-[var(--muted)] leading-relaxed">
+                Our core spaced repetition engine and practice quizzes are entirely free during this
+                beta phase.
+              </p>
+            </div>
+          </div>
+        </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[var(--border)] bg-[var(--surface)] py-8 text-center text-sm text-[var(--muted)] mt-auto">
-        <p>© {new Date().getFullYear()} UPCAT Prep Platform. Built for milestone deployment.</p>
+      <footer className="border-t border-[var(--border)] bg-[var(--surface)] py-12 mt-auto">
+        <div className="max-w-5xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="col-span-1 md:col-span-2">
+            <div className="flex items-center gap-2 mb-4">
+              <BrainCircuit className="h-6 w-6 text-[var(--color-primary)]" />
+              <span className="font-display text-xl font-bold text-[var(--color-primary)]">
+                UPCAT Prep
+              </span>
+            </div>
+            <p className="text-sm text-[var(--muted)] max-w-sm">
+              The smartest way to study for your college entrance exams. Powered by cognitive
+              science and spaced repetition.
+            </p>
+          </div>
+
+          <div>
+            <h5 className="font-bold mb-4">Product</h5>
+            <ul className="space-y-2 text-sm text-[var(--muted)]">
+              <li>
+                <Link href="/login" className="hover:text-[var(--foreground)]">
+                  Sign In
+                </Link>
+              </li>
+              <li>
+                <Link href="/signup" className="hover:text-[var(--foreground)]">
+                  Create Account
+                </Link>
+              </li>
+              <li>
+                <a href="#" className="hover:text-[var(--foreground)]">
+                  Pricing
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h5 className="font-bold mb-4">Legal</h5>
+            <ul className="space-y-2 text-sm text-[var(--muted)]">
+              <li>
+                <a href="#" className="hover:text-[var(--foreground)]">
+                  Privacy Policy
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-[var(--foreground)]">
+                  Terms of Service
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div className="max-w-5xl mx-auto px-6 mt-12 pt-8 border-t border-[var(--border)] text-center text-sm text-[var(--muted)]">
+          <p>© {new Date().getFullYear()} UPCAT Prep Platform. Built for milestone deployment.</p>
+        </div>
       </footer>
     </div>
   );
