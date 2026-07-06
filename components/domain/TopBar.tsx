@@ -30,7 +30,21 @@ export function TopBar({ streak = 0 }: { streak?: number }) {
           <BrainCircuit className="h-6 w-6 text-[var(--color-primary)]" />
           <span className="font-display font-bold text-[var(--color-primary)]">CET Prep</span>
         </div>
-        <div className="hidden sm:block">{/* Breadcrumb or Page Title Placeholder */}</div>
+        <div className="hidden sm:block flex-1 max-w-md mx-6">
+          <form action="/search" method="GET" className="relative w-full">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-4 w-4 text-[var(--muted-foreground)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              name="q"
+              placeholder="Search topics, notes, formulas..."
+              className="block w-full pl-10 pr-3 py-2 border border-[var(--border)] rounded-md leading-5 bg-[var(--surface)] text-[var(--foreground)] placeholder-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--ring)] sm:text-sm transition-colors"
+            />
+          </form>
+        </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 rounded-full bg-[var(--color-warning-light)]/20 px-3 py-1 text-sm font-semibold text-[var(--color-warning-dark)] dark:text-[var(--color-warning)] border border-[var(--color-warning-light)]/30 transition-all duration-300">
             <Flame className="h-4 w-4 fill-current animate-pulse" />

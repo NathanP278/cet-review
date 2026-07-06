@@ -3,6 +3,41 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export interface Database {
   public: {
     Tables: {
+      bookmarks: {
+        Row: {
+          created_at: string | null;
+          entity_id: string | null;
+          entity_type: Database["public"]["Enums"]["bookmark_entity_type"];
+          id: string;
+          item_ref: string | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          entity_id?: string | null;
+          entity_type: Database["public"]["Enums"]["bookmark_entity_type"];
+          id?: string;
+          item_ref?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          entity_id?: string | null;
+          entity_type?: Database["public"]["Enums"]["bookmark_entity_type"];
+          id?: string;
+          item_ref?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "bookmarks_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       categories: {
         Row: {
           created_at: string | null;
@@ -408,6 +443,113 @@ export interface Database {
           }
         ];
       };
+      user_notes: {
+        Row: {
+          content: string;
+          created_at: string | null;
+          id: string;
+          subtopic_id: string | null;
+          topic_id: string | null;
+          updated_at: string | null;
+          user_id: string;
+        };
+        Insert: {
+          content: string;
+          created_at?: string | null;
+          id?: string;
+          subtopic_id?: string | null;
+          topic_id?: string | null;
+          updated_at?: string | null;
+          user_id: string;
+        };
+        Update: {
+          content?: string;
+          created_at?: string | null;
+          id?: string;
+          subtopic_id?: string | null;
+          topic_id?: string | null;
+          updated_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_notes_subtopic_id_fkey";
+            columns: ["subtopic_id"];
+            isOneToOne: false;
+            referencedRelation: "subtopics";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_notes_topic_id_fkey";
+            columns: ["topic_id"];
+            isOneToOne: false;
+            referencedRelation: "topics";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_notes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      user_progress: {
+        Row: {
+          created_at: string | null;
+          id: string;
+          status: Database["public"]["Enums"]["progress_status"] | null;
+          study_time_seconds: number | null;
+          subtopic_id: string | null;
+          topic_id: string | null;
+          updated_at: string | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string;
+          status?: Database["public"]["Enums"]["progress_status"] | null;
+          study_time_seconds?: number | null;
+          subtopic_id?: string | null;
+          topic_id?: string | null;
+          updated_at?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string;
+          status?: Database["public"]["Enums"]["progress_status"] | null;
+          study_time_seconds?: number | null;
+          subtopic_id?: string | null;
+          topic_id?: string | null;
+          updated_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_progress_subtopic_id_fkey";
+            columns: ["subtopic_id"];
+            isOneToOne: false;
+            referencedRelation: "subtopics";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_progress_topic_id_fkey";
+            columns: ["topic_id"];
+            isOneToOne: false;
+            referencedRelation: "topics";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_progress_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -416,7 +558,9 @@ export interface Database {
       [_ in never]: never;
     };
     Enums: {
+      bookmark_entity_type: "topic" | "subtopic" | "resource" | "video" | "formula";
       difficulty_level: "easy" | "medium" | "hard";
+      progress_status: "started" | "completed";
       question_type: "mcq" | "flashcard";
     };
     CompositeTypes: {

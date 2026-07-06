@@ -43,12 +43,31 @@ export default async function DashboardPage() {
     .eq("user_id", user.id)
     .lte("next_review", now);
 
-  // Fetch streak from profile
   const { data: profile } = await supabase
     .from("profiles")
     .select("streak")
     .eq("id", user.id)
     .single();
+
+  // Fetch M16 Learning Stats
+  const { data: progressData } = await supabase
+    .from("user_progress")
+    .select("status, study_time_seconds")
+    .eq("user_id", user.id);
+
+  const progressStats = { started: 0, completed: 0, time: 0 };
+  if (progressData) {
+    progressData.forEach((p) => {
+      if (p.status === "started") progressStats.started += 1;
+      if (p.status === "completed") progressStats.completed += 1;
+      progressStats.time += p.study_time_seconds || 0;
+    });
+  }
+
+  const { count: notesCount } = await supabase
+    .from("user_notes")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id);
 
   const overallAccuracy = totalQuestions > 0 ? Math.round((totalScore / totalQuestions) * 100) : 0;
   const cardsDueToday = dueCount || 0;
@@ -136,6 +155,39 @@ export default async function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Learning Journey Stats */}
+      <div>
+        <h2 className="text-xl font-bold font-display mb-4">Learning Journey</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4 flex flex-col gap-1">
+              <span className="text-sm font-medium text-[var(--muted)] uppercase tracking-wider">Topics Started</span>
+              <span className="text-2xl font-bold text-[var(--foreground)]">{progressStats.started}</span>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex flex-col gap-1">
+              <span className="text-sm font-medium text-[var(--muted)] uppercase tracking-wider">Topics Mastered</span>
+              <span className="text-2xl font-bold text-[var(--foreground)]">{progressStats.completed}</span>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex flex-col gap-1">
+              <span className="text-sm font-medium text-[var(--muted)] uppercase tracking-wider">Notes Written</span>
+              <span className="text-2xl font-bold text-[var(--foreground)]">{notesCount}</span>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex flex-col gap-1">
+              <span className="text-sm font-medium text-[var(--muted)] uppercase tracking-wider">Study Time</span>
+              <span className="text-2xl font-bold text-[var(--foreground)]">
+                {Math.round(progressStats.time / 60)} mins
+              </span>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <div>
