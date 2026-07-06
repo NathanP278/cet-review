@@ -116,13 +116,6 @@ export function ExamSessionClient({ initialQuestions }: { initialQuestions: any[
     setIsSubmitting(false);
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-[var(--background)]">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-primary)]" />
-      </div>
-    );
-  }
 
   if (questions.length === 0) {
     return (
