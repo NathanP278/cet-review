@@ -13,63 +13,63 @@
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
   /* — Brand Colors — */
-  --color-primary:        #4f46e5; /* Indigo 600 */
-  --color-primary-light:  #818cf8; /* Indigo 400 */
-  --color-primary-dark:   #3730a3; /* Indigo 800 */
+  --color-primary: #4f46e5; /* Indigo 600 */
+  --color-primary-light: #818cf8; /* Indigo 400 */
+  --color-primary-dark: #3730a3; /* Indigo 800 */
 
-  --color-success:        #10b981; /* Emerald 500 */
-  --color-success-light:  #6ee7b7; /* Emerald 300 */
-  --color-success-dark:   #059669; /* Emerald 600 */
+  --color-success: #10b981; /* Emerald 500 */
+  --color-success-light: #6ee7b7; /* Emerald 300 */
+  --color-success-dark: #059669; /* Emerald 600 */
 
-  --color-warning:        #f59e0b; /* Amber 500 */
-  --color-warning-light:  #fcd34d; /* Amber 300 */
-  --color-warning-dark:   #d97706; /* Amber 600 */
+  --color-warning: #f59e0b; /* Amber 500 */
+  --color-warning-light: #fcd34d; /* Amber 300 */
+  --color-warning-dark: #d97706; /* Amber 600 */
 
-  --color-danger:         #e11d48; /* Rose 600 */
-  --color-danger-light:   #fb7185; /* Rose 400 */
-  --color-danger-dark:    #be123c; /* Rose 700 */
+  --color-danger: #e11d48; /* Rose 600 */
+  --color-danger-light: #fb7185; /* Rose 400 */
+  --color-danger-dark: #be123c; /* Rose 700 */
 
   /* — Neutrals (Dark Mode Slate) — */
-  --color-slate-950:  #020617;
-  --color-slate-900:  #0f172a;
-  --color-slate-800:  #1e293b;
-  --color-slate-700:  #334155;
-  --color-slate-600:  #475569;
-  --color-slate-500:  #64748b;
-  --color-slate-400:  #94a3b8;
-  --color-slate-300:  #cbd5e1;
-  --color-slate-200:  #e2e8f0;
-  --color-slate-100:  #f1f5f9;
-  --color-slate-50:   #f8fafc;
+  --color-slate-950: #020617;
+  --color-slate-900: #0f172a;
+  --color-slate-800: #1e293b;
+  --color-slate-700: #334155;
+  --color-slate-600: #475569;
+  --color-slate-500: #64748b;
+  --color-slate-400: #94a3b8;
+  --color-slate-300: #cbd5e1;
+  --color-slate-200: #e2e8f0;
+  --color-slate-100: #f1f5f9;
+  --color-slate-50: #f8fafc;
 
   /* — Semantic surface tokens — */
-  --color-background:       var(--background);
-  --color-surface:          var(--surface);
+  --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-surface-elevated: var(--surface-elevated);
-  --color-border:           var(--border);
-  --color-foreground:       var(--foreground);
-  --color-muted:            var(--muted);
+  --color-border: var(--border);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
 }
 
 /* — Light mode — */
 :root {
-  --background:       #f9fafb;
-  --surface:          #ffffff;
+  --background: #f9fafb;
+  --surface: #ffffff;
   --surface-elevated: #ffffff;
-  --border:           #e5e7eb;
-  --foreground:       #111827;
-  --muted:            #6b7280;
+  --border: #e5e7eb;
+  --foreground: #111827;
+  --muted: #6b7280;
 }
 
 /* — Dark mode — */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background:       #0f172a;
-    --surface:          #1e293b;
+    --background: #0f172a;
+    --surface: #1e293b;
     --surface-elevated: #263346;
-    --border:           #334155;
-    --foreground:       #f1f5f9;
-    --muted:            #94a3b8;
+    --border: #334155;
+    --foreground: #f1f5f9;
+    --muted: #94a3b8;
   }
 }
 
