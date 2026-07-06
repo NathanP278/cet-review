@@ -26,12 +26,23 @@ export default async function SubjectHubPage({
     notFound();
   }
 
-  // Fetch related topics
-  const { data: topics } = await supabase
-    .from("topics")
-    .select("*")
-    .eq("subject_id", subject_id)
-    .order("name");
+  // Fetch related categories to get topics
+  const { data: categories } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("subject_id", subject_id);
+
+  const categoryIds = categories?.map((c) => c.id) || [];
+
+  let topics: { id: string; name: string }[] = [];
+  if (categoryIds.length > 0) {
+    const { data } = await supabase
+      .from("topics")
+      .select("*")
+      .in("category_id", categoryIds)
+      .order("name");
+    topics = data || [];
+  }
 
   // Generate progress for topics
   const topicsWithMockProgress =
