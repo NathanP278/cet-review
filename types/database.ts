@@ -133,11 +133,17 @@ export interface Database {
         Row: {
           answer: string;
           choices: Json | null;
+          category_id: string | null;
           content: string;
           created_at: string | null;
           difficulty: Database["public"]["Enums"]["difficulty_level"] | null;
+          estimated_time_seconds: number | null;
+          exam_type: string[] | null;
           explanation: string | null;
+          hint: string | null;
           id: string;
+          source_type: string | null;
+          subject_id: string | null;
           subtopic_id: string | null;
           tags: string[] | null;
           topic_id: string | null;
@@ -146,11 +152,17 @@ export interface Database {
         Insert: {
           answer: string;
           choices?: Json | null;
+          category_id?: string | null;
           content: string;
           created_at?: string | null;
           difficulty?: Database["public"]["Enums"]["difficulty_level"] | null;
+          estimated_time_seconds?: number | null;
+          exam_type?: string[] | null;
           explanation?: string | null;
+          hint?: string | null;
           id?: string;
+          source_type?: string | null;
+          subject_id?: string | null;
           subtopic_id?: string | null;
           tags?: string[] | null;
           topic_id?: string | null;
@@ -159,11 +171,17 @@ export interface Database {
         Update: {
           answer?: string;
           choices?: Json | null;
+          category_id?: string | null;
           content?: string;
           created_at?: string | null;
           difficulty?: Database["public"]["Enums"]["difficulty_level"] | null;
+          estimated_time_seconds?: number | null;
+          exam_type?: string[] | null;
           explanation?: string | null;
+          hint?: string | null;
           id?: string;
+          source_type?: string | null;
+          subject_id?: string | null;
           subtopic_id?: string | null;
           tags?: string[] | null;
           topic_id?: string | null;
@@ -175,6 +193,20 @@ export interface Database {
             columns: ["subtopic_id"];
             isOneToOne: false;
             referencedRelation: "subtopics";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "questions_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "questions_subject_id_fkey";
+            columns: ["subject_id"];
+            isOneToOne: false;
+            referencedRelation: "subjects";
             referencedColumns: ["id"];
           },
           {
@@ -559,7 +591,7 @@ export interface Database {
     };
     Enums: {
       bookmark_entity_type: "topic" | "subtopic" | "resource" | "video" | "formula";
-      difficulty_level: "easy" | "medium" | "hard";
+      difficulty_level: "easy" | "medium" | "hard" | "challenge";
       progress_status: "started" | "completed";
       question_type: "mcq" | "flashcard";
     };

@@ -1,3 +1,5 @@
+DROP TYPE IF EXISTS question_type CASCADE;
+DROP TYPE IF EXISTS difficulty_level CASCADE;
 -- Create ENUM for Question Types
 CREATE TYPE question_type AS ENUM ('mcq', 'flashcard');
 CREATE TYPE difficulty_level AS ENUM ('easy', 'medium', 'hard');
