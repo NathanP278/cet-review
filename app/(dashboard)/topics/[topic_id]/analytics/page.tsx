@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { AccuracyRing } from "@/components/domain/AccuracyRing";
 
 interface PageProps {
-  params: {
+  params: Promise<{
     topic_id: string;
-  };
+  }>;
 }
 
 export default async function TopicAnalyticsPage({ params }: PageProps) {
+  const { topic_id } = await params;
   const supabase = await createClient();
   const user = await getUser();
 
@@ -20,7 +21,7 @@ export default async function TopicAnalyticsPage({ params }: PageProps) {
   const { data: topic } = await supabase
     .from("topics")
     .select("name, description, categories(subjects(name))")
-    .eq("id", params.topic_id)
+    .eq("id", topic_id)
     .single();
 
   if (!topic) redirect("/subjects");
@@ -36,7 +37,7 @@ export default async function TopicAnalyticsPage({ params }: PageProps) {
     .from("topic_mastery_view")
     .select("*")
     .eq("user_id", user.id)
-    .eq("topic_id", params.topic_id)
+    .eq("topic_id", topic_id)
     .single();
 
   const totalCards = masteryData?.total_cards || 0;
@@ -50,7 +51,7 @@ export default async function TopicAnalyticsPage({ params }: PageProps) {
     .select("average_response_time, lapse_count, total_reviews")
     .eq("user_id", user.id)
     .in("question_id", (
-      supabase.from("questions").select("id").eq("topic_id", params.topic_id)
+      supabase.from("questions").select("id").eq("topic_id", topic_id)
     ) as any);
 
   let totalResponseTime = 0;

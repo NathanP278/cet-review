@@ -8,12 +8,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 interface PageProps {
-  params: {
+  params: Promise<{
     subject_id: string;
-  };
+  }>;
 }
 
 export default async function SubjectAnalyticsPage({ params }: PageProps) {
+  const { subject_id } = await params;
   const supabase = await createClient();
   const user = await getUser();
 
@@ -23,7 +24,7 @@ export default async function SubjectAnalyticsPage({ params }: PageProps) {
   const { data: subject } = await supabase
     .from("subjects")
     .select("name, description")
-    .eq("id", params.subject_id)
+    .eq("id", subject_id)
     .single();
 
   if (!subject) redirect("/subjects");
@@ -33,7 +34,7 @@ export default async function SubjectAnalyticsPage({ params }: PageProps) {
     .from("subject_mastery_analytics_view")
     .select("*")
     .eq("user_id", user.id)
-    .eq("subject_id", params.subject_id)
+    .eq("subject_id", subject_id)
     .single();
 
   const totalCards = masteryData?.total_cards || 0;
@@ -46,7 +47,7 @@ export default async function SubjectAnalyticsPage({ params }: PageProps) {
     .from("topic_mastery_view")
     .select("topic_id, topic_name, mastery_percentage")
     .eq("user_id", user.id)
-    .eq("subject_id", params.subject_id)
+    .eq("subject_id", subject_id)
     .order("mastery_percentage", { ascending: true })
     .limit(3);
 
