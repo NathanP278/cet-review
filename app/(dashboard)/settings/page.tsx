@@ -10,17 +10,19 @@ import { LogOut, User, Bell, Shield, Loader2 } from "lucide-react";
 export default function SettingsPage() {
   const router = useRouter();
   const [email, setEmail] = useState<string | null>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     async function loadProfile() {
       const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setEmail(user.email ?? null);
+        const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+        if (data) setProfile(data);
       }
       setLoading(false);
     }
@@ -32,6 +34,32 @@ export default function SettingsPage() {
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");
+  };
+
+  const updatePreference = async (key: string, value: any) => {
+    if (!profile) return;
+    setSaving(true);
+    const updated = { ...profile, [key]: value };
+    setProfile(updated);
+    const supabase = createClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await supabase.from("profiles").update({ [key]: value } as any).eq("id", profile.id);
+    setSaving(false);
+  };
+
+  const handleExport = async () => {
+    try {
+      const response = await fetch("/api/export");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `cet_export_${new Date().toISOString().split("T")[0]}.json`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      alert("Failed to export data");
+    }
   };
 
   if (loading) {
@@ -80,31 +108,72 @@ export default function SettingsPage() {
                   {email || "Unknown"}
                 </div>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-[var(--muted)]">Password</label>
-                <Button variant="outline" className="w-fit">
-                  Change Password
-                </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex justify-between items-center">
+                Study Preferences
+                {saving && <Loader2 className="h-4 w-4 animate-spin text-[var(--color-primary)]" />}
+              </CardTitle>
+              <CardDescription>Customize your learning experience.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              
+              <div className="flex items-center justify-between p-4 border border-[var(--border)] rounded-lg">
+                <div>
+                  <h4 className="font-medium">Daily Review Limit</h4>
+                  <p className="text-sm text-[var(--muted)]">Maximum cards to review per day.</p>
+                </div>
+                <input 
+                  type="number" 
+                  className="w-20 px-3 py-1 border border-[var(--border)] rounded bg-transparent"
+                  value={profile?.daily_review_limit || 50}
+                  onChange={(e) => updatePreference("daily_review_limit", parseInt(e.target.value))}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border border-[var(--border)] rounded-lg">
+                <div>
+                  <h4 className="font-medium">Review Animations</h4>
+                  <p className="text-sm text-[var(--muted)]">Enable 3D flip and swipe animations.</p>
+                </div>
+                <button 
+                  onClick={() => updatePreference("review_animations", !profile?.review_animations)}
+                  className={`w-12 h-6 rounded-full relative transition-colors ${profile?.review_animations ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-slate-300)] dark:bg-[var(--color-slate-700)]'}`}
+                >
+                  <div className={`absolute top-1 bg-white w-4 h-4 rounded-full shadow-sm transition-all ${profile?.review_animations ? 'right-1' : 'left-1'}`} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between p-4 border border-[var(--border)] rounded-lg">
+                <div>
+                  <h4 className="font-medium">Keyboard Shortcuts</h4>
+                  <p className="text-sm text-[var(--muted)]">Use Space and 1-4 for quick ratings.</p>
+                </div>
+                <button 
+                  onClick={() => updatePreference("keyboard_shortcuts", !profile?.keyboard_shortcuts)}
+                  className={`w-12 h-6 rounded-full relative transition-colors ${profile?.keyboard_shortcuts ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-slate-300)] dark:bg-[var(--color-slate-700)]'}`}
+                >
+                  <div className={`absolute top-1 bg-white w-4 h-4 rounded-full shadow-sm transition-all ${profile?.keyboard_shortcuts ? 'right-1' : 'left-1'}`} />
+                </button>
               </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Study Preferences</CardTitle>
-              <CardDescription>Customize your learning experience.</CardDescription>
+              <CardTitle>Data Management</CardTitle>
+              <CardDescription>Export or delete your study data.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="flex items-center justify-between p-4 border border-[var(--border)] rounded-lg">
                 <div>
-                  <h4 className="font-medium">Daily Reminders</h4>
-                  <p className="text-sm text-[var(--muted)]">
-                    Get notified when you have cards due for review.
-                  </p>
+                  <h4 className="font-medium">Export Data</h4>
+                  <p className="text-sm text-[var(--muted)]">Download your review history in JSON format.</p>
                 </div>
-                <div className="w-12 h-6 bg-[var(--color-primary)] rounded-full relative cursor-pointer">
-                  <div className="absolute right-1 top-1 bg-white w-4 h-4 rounded-full shadow-sm" />
-                </div>
+                <Button variant="outline" onClick={handleExport}>Export JSON</Button>
               </div>
             </CardContent>
           </Card>

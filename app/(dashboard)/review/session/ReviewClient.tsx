@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -16,6 +17,7 @@ export function ReviewClient({ initialCards }: { initialCards: any[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const router = useRouter();
 
 
 
@@ -83,24 +85,11 @@ export function ReviewClient({ initialCards }: { initialCards: any[] }) {
   }
 
   if (isFinished) {
+    // Redirect to the new summary page instead of showing the inline success message
+    router.push("/review/summary");
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center animate-in fade-in zoom-in duration-500">
-        <Card className="w-full max-w-md border-[var(--color-primary)]">
-          <CardContent className="flex flex-col items-center gap-6 p-8">
-            <div className="text-5xl">🎉</div>
-            <div>
-              <h2 className="text-2xl font-bold font-display text-[var(--foreground)]">
-                Review Complete!
-              </h2>
-              <p className="text-[var(--muted)] mt-2">
-                You successfully reviewed {cards.length} cards today.
-              </p>
-            </div>
-            <Link href="/dashboard" className="w-full">
-              <Button className="w-full">Return to Dashboard</Button>
-            </Link>
-          </CardContent>
-        </Card>
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-primary)]" />
       </div>
     );
   }
@@ -130,11 +119,12 @@ export function ReviewClient({ initialCards }: { initialCards: any[] }) {
           </div>
         )}
         <Flashcard
-          frontContent={question.content}
-          backContent={
-            question.answer +
-            (question.explanation ? `\n\nExplanation: ${question.explanation}` : "")
-          }
+          key={currentCard.id}
+          cardId={currentCard.id}
+          questionId={question?.id || ""}
+          frontContent={question?.question_text || "Missing Question"}
+          backContent={question?.correct_answer || "Missing Answer"}
+          explanation={question?.explanation}
           onRate={handleRate}
         />
       </div>

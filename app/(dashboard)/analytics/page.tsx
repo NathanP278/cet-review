@@ -1,7 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { AnalyticsChart } from "@/components/domain/AnalyticsChart";
+import { StudyInsights } from "@/components/domain/StudyInsights";
+import { MemoryForecast } from "@/components/domain/MemoryForecast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { AlertCircle, Target, TrendingUp } from "lucide-react";
+import { AlertCircle, Target, TrendingUp, Zap } from "lucide-react";
+import { generateInsights, calculateMomentum } from "@/lib/insights";
 
 export default async function AnalyticsPage() {
   const supabase = await createClient();
@@ -96,6 +99,61 @@ export default async function AnalyticsPage() {
     .sort((a, b) => b.struggleScore - a.struggleScore) // Sort by most struggles
     .slice(0, 5); // Top 5 weakest
 
+  // 3. Intelligent Insights & Memory Forecast
+  const { data: reviewHistory } = await supabase
+    .from("review_history")
+    .select("time_spent_secs, reviewed_at, rating")
+    .eq("user_id", user.id);
+
+  const { data: allUserCards } = await supabase
+    .from("user_cards")
+    .select("next_review, retention_score")
+    .eq("user_id", user.id);
+
+  const insights = generateInsights(reviewHistory || [], allUserCards || [], []);
+  const momentum = calculateMomentum(reviewHistory || []);
+
+  const forecastCounts = new Map<string, number>();
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  let totalNext30Days = 0;
+
+  if (allUserCards) {
+    allUserCards.forEach(c => {
+      if (c.next_review) {
+        const d = new Date(c.next_review);
+        const diffTime = d.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays >= 0 && diffDays <= 30) {
+          totalNext30Days++;
+          if (diffDays <= 7) {
+            const dateStr = d.toISOString().split("T")[0];
+            forecastCounts.set(dateStr, (forecastCounts.get(dateStr) || 0) + 1);
+          }
+        }
+      }
+    });
+  }
+
+  const forecastData = [];
+  for (let i = 0; i <= 7; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() + i);
+    const dateStr = d.toISOString().split("T")[0];
+    const dayName = d.toLocaleDateString(undefined, { weekday: "short" });
+    forecastData.push({
+      day: i === 0 ? "Today" : dayName,
+      count: forecastCounts.get(dateStr) || 0
+    });
+  }
+
+  const getMomentumColor = (m: string) => {
+    if (m === "Improving") return "text-[var(--color-success)]";
+    if (m === "Declining") return "text-[var(--color-danger)]";
+    if (m === "Needs Attention") return "text-[var(--color-warning)]";
+    return "text-[var(--muted)]";
+  };
+
   return (
     <div className="max-w-5xl mx-auto py-8 flex flex-col gap-8">
       <div>
@@ -103,6 +161,22 @@ export default async function AnalyticsPage() {
         <p className="text-[var(--muted)] mt-2">
           Track your progress and identify areas for improvement.
         </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-2">
+        <Card className="col-span-1 md:col-span-1 border-[var(--border)] shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-[var(--muted)] uppercase tracking-wider font-semibold">
+              Learning Momentum
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center gap-3">
+            <Zap className={`w-8 h-8 ${getMomentumColor(momentum)}`} />
+            <span className={`text-2xl font-bold ${getMomentumColor(momentum)}`}>
+              {momentum}
+            </span>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -152,6 +226,16 @@ export default async function AnalyticsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Intelligent Insights */}
+        <div className="col-span-1 md:col-span-2">
+          <StudyInsights insights={insights} />
+        </div>
+
+        {/* Memory Forecast */}
+        <div className="col-span-1">
+          <MemoryForecast forecastData={forecastData} totalNext30Days={totalNext30Days} />
+        </div>
       </div>
     </div>
   );

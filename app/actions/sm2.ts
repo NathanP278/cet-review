@@ -123,6 +123,7 @@ export async function getDailyReviewQueue(limit?: number) {
   // 1. Overdue & Due Cards (highest priority)
   // We prioritize 'relearning' > 'learning' > 'review'
   // and prioritize cards with higher lapse_counts (leeches/frequently forgotten)
+  // Fetch a larger pool to interleave
   let { data: cards, error } = await supabase
     .from("user_cards")
     .select(`
@@ -133,12 +134,18 @@ export async function getDailyReviewQueue(limit?: number) {
       lapse_count,
       questions (
         id,
-        content,
-        answer,
+        question_text,
+        correct_answer,
         explanation,
-        hint,
         difficulty,
-        topic_id
+        topics (
+          id,
+          name,
+          subjects (
+            id,
+            name
+          )
+        )
       )
     `)
     .eq("user_id", user.id)
@@ -146,11 +153,45 @@ export async function getDailyReviewQueue(limit?: number) {
     .lte("next_review", now)
     .order("lapse_count", { ascending: false }) // Prioritize forgotten
     .order("next_review", { ascending: true }) // Then by oldest due
-    .limit(reviewLimit);
+    .limit(reviewLimit * 2); // Fetch 2x to shuffle
 
   if (error || !cards) {
     throw new Error("Failed to generate queue");
   }
 
-  return cards;
+  // Smart Review Order: Interleaving
+  // Group cards by topic_id (or subject_id)
+  const groupedCards = new Map<string, any[]>();
+  
+  cards.forEach(card => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const q = Array.isArray(card.questions) ? card.questions[0] : card.questions;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const t = q && Array.isArray((q as any).topics) ? (q as any).topics[0] : (q as any).topics;
+    const topicId = t ? t.id : "general";
+
+    if (!groupedCards.has(topicId)) {
+      groupedCards.set(topicId, []);
+    }
+    groupedCards.get(topicId)!.push(card);
+  });
+
+  const interleavedQueue: any[] = [];
+  const keys = Array.from(groupedCards.keys());
+  
+  // Round robin extraction
+  let added = true;
+  while (added && interleavedQueue.length < reviewLimit) {
+    added = false;
+    for (const key of keys) {
+      if (interleavedQueue.length >= reviewLimit) break;
+      const group = groupedCards.get(key);
+      if (group && group.length > 0) {
+        interleavedQueue.push(group.shift());
+        added = true;
+      }
+    }
+  }
+
+  return interleavedQueue;
 }

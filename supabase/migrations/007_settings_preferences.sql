@@ -1,0 +1,13 @@
+-- Migration 007: Settings and Preferences
+
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS daily_new_cards_limit INTEGER DEFAULT 15,
+ADD COLUMN IF NOT EXISTS max_session_length INTEGER DEFAULT 50,
+ADD COLUMN IF NOT EXISTS review_animations BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS keyboard_shortcuts BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS sound_effects BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS reminder_time TIME,
+ADD COLUMN IF NOT EXISTS weekend_reminders BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS auto_reveal BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS auto_continue BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS export_format TEXT DEFAULT 'json';

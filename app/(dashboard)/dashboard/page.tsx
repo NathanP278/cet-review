@@ -2,9 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import { AccuracyRing } from "@/components/domain/AccuracyRing";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Flame, PlayCircle, TrendingUp, BookOpen, Clock } from "lucide-react";
+import { Flame, PlayCircle, TrendingUp, BookOpen, Clock, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ReviewHeatmap } from "@/components/domain/ReviewHeatmap";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -88,6 +89,24 @@ export default async function DashboardPage() {
     .from("user_notes")
     .select("*", { count: "exact", head: true })
     .eq("user_id", user.id);
+
+  // Fetch heatmap data (last 90 days)
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  const { data: historyData } = await supabase
+    .from("review_history")
+    .select("reviewed_at")
+    .eq("user_id", user.id)
+    .gte("reviewed_at", ninetyDaysAgo.toISOString());
+
+  const heatmapCounts = new Map<string, number>();
+  if (historyData) {
+    historyData.forEach(r => {
+      const date = new Date(r.reviewed_at).toISOString().split('T')[0];
+      heatmapCounts.set(date, (heatmapCounts.get(date) || 0) + 1);
+    });
+  }
+  const heatmapArray = Array.from(heatmapCounts.entries()).map(([date, count]) => ({ date, count }));
 
   // Fetch the count of flashcards due for review today
   const now = new Date().toISOString();
@@ -227,6 +246,18 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <CalendarDays className="w-6 h-6 text-[var(--color-primary)]" />
+          <h2 className="text-xl font-bold font-display">Review Heatmap</h2>
+        </div>
+        <Card>
+          <CardContent className="p-6">
+            <ReviewHeatmap data={heatmapArray} days={90} />
+          </CardContent>
+        </Card>
       </div>
 
       <div>
