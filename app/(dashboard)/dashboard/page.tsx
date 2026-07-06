@@ -35,17 +35,37 @@ export default async function DashboardPage() {
     });
   }
 
-  // Fetch the count of flashcards due for review today
-  const now = new Date().toISOString();
-  const { count: dueCount } = await supabase
-    .from("user_cards")
+  // Fetch Today's Reviews Completed
+  const { count: reviewsCompletedToday } = await supabase
+    .from("review_history")
     .select("*", { count: "exact", head: true })
     .eq("user_id", user.id)
-    .lte("next_review", now);
+    .gte("reviewed_at", new Date(new Date().setHours(0,0,0,0)).toISOString());
+
+  // Fetch Memory Health Stats
+  const { data: allCards } = await supabase
+    .from("user_cards")
+    .select("state, retention_score, lapse_count")
+    .eq("user_id", user.id);
+
+  let masteredCards = 0;
+  let learningCards = 0;
+  let totalRetention = 0;
+  let leeches = 0;
+
+  if (allCards) {
+    allCards.forEach(card => {
+      if (card.state === "review") masteredCards++;
+      if (card.state === "learning" || card.state === "relearning") learningCards++;
+      if (card.lapse_count >= 3) leeches++;
+      totalRetention += card.retention_score;
+    });
+  }
+  const avgRetention = allCards && allCards.length > 0 ? Math.round(totalRetention / allCards.length) : 0;
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("streak")
+    .select("streak, daily_review_limit")
     .eq("id", user.id)
     .single();
 
@@ -69,9 +89,19 @@ export default async function DashboardPage() {
     .select("*", { count: "exact", head: true })
     .eq("user_id", user.id);
 
-  const overallAccuracy = totalQuestions > 0 ? Math.round((totalScore / totalQuestions) * 100) : 0;
-  const cardsDueToday = dueCount || 0;
+  // Fetch the count of flashcards due for review today
+  const now = new Date().toISOString();
+  const { count: dueCount } = await supabase
+    .from("user_cards")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .in("state", ["learning", "relearning", "review"])
+    .lte("next_review", now);
+
+  const dailyLimit = profile?.daily_review_limit || 50;
   const streak = profile?.streak || 0;
+  const cardsDueToday = dueCount || 0;
+  const completedToday = reviewsCompletedToday || 0;
 
   return (
     <div className="flex flex-col gap-8 max-w-5xl mx-auto">
@@ -91,16 +121,16 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="col-span-1 border-t-4 border-t-[var(--color-primary)]">
           <CardHeader className="pb-2">
-            <CardTitle>Exam Readiness</CardTitle>
-            <CardDescription>Based on your recent practice</CardDescription>
+            <CardTitle>Memory Health</CardTitle>
+            <CardDescription>Based on SM-2 Spaced Repetition</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center py-6 gap-4">
-            {totalQuestions > 0 ? (
+            {allCards && allCards.length > 0 ? (
               <>
-                <AccuracyRing accuracy={overallAccuracy} size={140} label="Mastery" />
+                <AccuracyRing accuracy={avgRetention} size={140} label="Retention" />
                 <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
                   <TrendingUp className="h-4 w-4 text-[var(--color-success)]" />
-                  <span>+2% from last week</span>
+                  <span>{masteredCards} Mastered Cards</span>
                 </div>
               </>
             ) : (
@@ -114,10 +144,19 @@ export default async function DashboardPage() {
 
         <Card className="col-span-1 md:col-span-2">
           <CardHeader>
-            <CardTitle>Today&apos;s Study Plan</CardTitle>
-            <CardDescription>Optimized by Spaced Repetition (SM-2)</CardDescription>
+            <CardTitle>Today&apos;s Review Plan</CardTitle>
+            <CardDescription>
+              {completedToday} / {dailyLimit} daily goal completed
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
+            <div className="h-2 w-full bg-[var(--color-slate-100)] dark:bg-[var(--color-slate-800)] rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-[var(--color-primary)] transition-all duration-500"
+                style={{ width: `${Math.min(100, (completedToday / dailyLimit) * 100)}%` }}
+              />
+            </div>
+            
             <div className="flex items-start gap-4 p-4 rounded-lg bg-[var(--color-slate-100)] dark:bg-[var(--color-slate-800)]/50 border border-[var(--border)]">
               <div className="p-3 bg-[var(--color-primary)] rounded-full text-white shrink-0">
                 <Clock className="h-6 w-6" />
@@ -126,9 +165,9 @@ export default async function DashboardPage() {
                 <h3 className="font-semibold text-lg">Daily Review Due</h3>
                 <p className="text-sm text-[var(--muted)] mb-3">
                   You have <strong className="text-[var(--foreground)]">{cardsDueToday}</strong>{" "}
-                  concepts due for review today across Math and Science.
+                  cards pending in your queue.
                 </p>
-                <Link href="/practice">
+                <Link href="/review">
                   <Button className="gap-2 w-full sm:w-auto">
                     <PlayCircle className="h-4 w-4" />
                     Start Review Session

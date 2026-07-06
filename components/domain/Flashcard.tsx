@@ -7,11 +7,18 @@ import { Button } from "@/components/ui/button";
 export interface FlashcardProps {
   frontContent: string;
   backContent: string;
-  onRate: (quality: number) => void;
+  onRate: (rating: "again" | "hard" | "good" | "easy", timeSpentMs: number) => void;
 }
 
 export function Flashcard({ frontContent, backContent, onRate }: FlashcardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
+  const [startTime, setStartTime] = useState<number>(Date.now());
+
+  // Reset state when props change (new card)
+  useEffect(() => {
+    setIsFlipped(false);
+    setStartTime(Date.now());
+  }, [frontContent, backContent]);
 
   const handleFlip = () => {
     if (!isFlipped) {
@@ -19,27 +26,24 @@ export function Flashcard({ frontContent, backContent, onRate }: FlashcardProps)
     }
   };
 
-  const handleRate = (quality: number) => {
-    onRate(quality);
-    // Reset flip state immediately for the next card (handled by parent passing new props, but good measure)
-    setIsFlipped(false);
+  const handleRate = (rating: "again" | "hard" | "good" | "easy") => {
+    const timeSpentMs = Date.now() - startTime;
+    onRate(rating, timeSpentMs);
   };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
-      if (!isFlipped && e.code === "Space") {
+      if (!isFlipped && (e.code === "Space" || e.code === "Enter")) {
         e.preventDefault();
         handleFlip();
       } else if (isFlipped) {
-        const keyMap: Record<string, number> = {
-          Digit1: 0,
-          Digit2: 1,
-          Digit3: 2,
-          Digit4: 3,
-          Digit5: 4,
-          Digit6: 5,
+        const keyMap: Record<string, "again" | "hard" | "good" | "easy"> = {
+          Digit1: "again",
+          Digit2: "hard",
+          Digit3: "good",
+          Digit4: "easy",
         };
         if (e.code in keyMap) {
           e.preventDefault();
@@ -75,20 +79,20 @@ export function Flashcard({ frontContent, backContent, onRate }: FlashcardProps)
               {frontContent}
             </h3>
             {!isFlipped && (
-              <span className="absolute bottom-6 text-sm text-[var(--muted)] animate-pulse">
-                Click to flip
+              <span className="absolute bottom-6 text-sm text-[var(--muted)] animate-pulse flex items-center gap-2">
+                Click or press <kbd className="border border-[var(--border)] px-2 py-0.5 rounded-md shadow-sm">Space</kbd> to reveal
               </span>
             )}
           </div>
 
           {/* Back */}
           <div
-            className="absolute inset-0 backface-hidden w-full h-full flex flex-col items-center justify-center p-8 bg-[var(--color-primary-light)]/5 border-2 border-[var(--color-primary)] rounded-2xl shadow-sm rotate-y-180"
+            className="absolute inset-0 backface-hidden w-full h-full flex flex-col p-8 bg-[var(--color-primary-light)]/5 border-2 border-[var(--color-primary)] rounded-2xl shadow-sm rotate-y-180 overflow-y-auto"
             style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
           >
-            <h3 className="text-xl md:text-2xl text-center font-medium leading-relaxed">
-              {backContent}
-            </h3>
+             <h3 className="text-xl md:text-2xl text-center font-medium leading-relaxed mb-6">
+                {backContent}
+             </h3>
           </div>
         </div>
       </div>
@@ -103,54 +107,38 @@ export function Flashcard({ frontContent, backContent, onRate }: FlashcardProps)
         <h4 className="text-center text-sm font-semibold text-[var(--muted)] mb-4">
           How well did you know this?
         </h4>
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        <div className="grid grid-cols-4 gap-3">
           <Button
             variant="danger"
-            className="w-full flex-col h-auto py-3 gap-1"
-            onClick={() => handleRate(0)}
+            className="w-full flex-col h-auto py-3 gap-1 shadow-sm"
+            onClick={() => handleRate("again")}
           >
-            <span className="text-lg font-bold">0</span>
-            <span className="text-[10px] opacity-80 uppercase">Blackout</span>
-          </Button>
-          <Button
-            variant="danger"
-            className="w-full flex-col h-auto py-3 gap-1 bg-[var(--color-danger-light)]/80 text-[var(--color-danger-dark)] hover:bg-[var(--color-danger)] hover:text-white"
-            onClick={() => handleRate(1)}
-          >
-            <span className="text-lg font-bold">1</span>
-            <span className="text-[10px] opacity-80 uppercase">Wrong</span>
+            <span className="text-sm font-bold uppercase tracking-wider">Again</span>
+            <span className="text-[10px] opacity-70 border border-current rounded-sm px-1.5">&lt; 1m</span>
           </Button>
           <Button
             variant="warning"
-            className="w-full flex-col h-auto py-3 gap-1 border-2 border-[var(--color-warning)] bg-transparent text-[var(--foreground)] hover:bg-[var(--color-warning-light)]/20"
-            onClick={() => handleRate(2)}
+            className="w-full flex-col h-auto py-3 gap-1 shadow-sm border-2 border-[var(--color-warning)] bg-transparent text-[var(--foreground)] hover:bg-[var(--color-warning-light)]/20"
+            onClick={() => handleRate("hard")}
           >
-            <span className="text-lg font-bold">2</span>
-            <span className="text-[10px] opacity-80 uppercase">Hard</span>
-          </Button>
-          <Button
-            variant="warning"
-            className="w-full flex-col h-auto py-3 gap-1"
-            onClick={() => handleRate(3)}
-          >
-            <span className="text-lg font-bold">3</span>
-            <span className="text-[10px] opacity-80 uppercase">Good</span>
+            <span className="text-sm font-bold uppercase tracking-wider">Hard</span>
+            <span className="text-[10px] opacity-70 border border-current rounded-sm px-1.5">&lt; 10m</span>
           </Button>
           <Button
             variant="success"
-            className="w-full flex-col h-auto py-3 gap-1 bg-[var(--color-success-light)]/80 text-[var(--color-success-dark)] hover:bg-[var(--color-success)] hover:text-white"
-            onClick={() => handleRate(4)}
+            className="w-full flex-col h-auto py-3 gap-1 shadow-sm border-2 border-[var(--color-success)] bg-transparent text-[var(--foreground)] hover:bg-[var(--color-success-light)]/20"
+            onClick={() => handleRate("good")}
           >
-            <span className="text-lg font-bold">4</span>
-            <span className="text-[10px] opacity-80 uppercase">Easy</span>
+            <span className="text-sm font-bold uppercase tracking-wider">Good</span>
+            <span className="text-[10px] opacity-70 border border-current rounded-sm px-1.5">1d</span>
           </Button>
           <Button
             variant="success"
-            className="w-full flex-col h-auto py-3 gap-1"
-            onClick={() => handleRate(5)}
+            className="w-full flex-col h-auto py-3 gap-1 shadow-sm bg-[var(--color-success-light)] text-[var(--color-success-dark)] hover:bg-[var(--color-success)] hover:text-white"
+            onClick={() => handleRate("easy")}
           >
-            <span className="text-lg font-bold">5</span>
-            <span className="text-[10px] opacity-80 uppercase">Perfect</span>
+            <span className="text-sm font-bold uppercase tracking-wider">Easy</span>
+            <span className="text-[10px] opacity-70 border border-current rounded-sm px-1.5">4d</span>
           </Button>
         </div>
       </div>

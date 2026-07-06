@@ -1,63 +1,90 @@
+export type CardState = "new" | "learning" | "review" | "relearning" | "suspended" | "buried";
+
 export interface SM2Result {
   interval: number;
   repetitions: number;
   easeFactor: number;
+  state: CardState;
+  lapseCount: number;
 }
 
 /**
- * Calculates the next review interval using the SM-2 Spaced Repetition Algorithm.
- *
- * @param quality - Quality of response (0-5)
- *  5: perfect response
- *  4: correct response after a hesitation
- *  3: correct response recalled with serious difficulty
- *  2: incorrect response; where the correct one seemed easy to recall
- *  1: incorrect response; the correct one remembered
- *  0: complete blackout
- * @param repetitions - Previous number of consecutive correct repetitions
- * @param previousInterval - Previous interval in days
- * @param previousEaseFactor - Previous ease factor (defaults to 2.5)
- * @returns SM2Result containing the new interval, repetitions, and ease factor
+ * Calculates the next review interval using a robust Anki-style SM-2 Algorithm.
  */
 export function calculateSM2(
-  quality: number,
+  rating: "again" | "hard" | "good" | "easy",
+  currentState: CardState,
   repetitions: number,
   previousInterval: number,
-  previousEaseFactor: number
+  previousEaseFactor: number,
+  lapseCount: number
 ): SM2Result {
-  // Ensure quality is between 0 and 5
-  const q = Math.max(0, Math.min(5, Math.round(quality)));
-
+  let nextState = currentState;
   let newRepetitions = repetitions;
   let newInterval = previousInterval;
   let newEaseFactor = previousEaseFactor;
+  let newLapseCount = lapseCount;
 
-  // 1. Calculate new ease factor
-  newEaseFactor = previousEaseFactor + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02));
-  if (newEaseFactor < 1.3) {
-    newEaseFactor = 1.3;
-  }
+  // Convert text rating to standard SM-2 Quality for EF calculation
+  const quality = rating === "again" ? 1 : rating === "hard" ? 2 : rating === "good" ? 3 : 5;
 
-  // 2. Calculate repetitions and interval based on correct/incorrect
-  if (q >= 3) {
-    // Correct response
-    if (newRepetitions === 0) {
-      newInterval = 1;
-    } else if (newRepetitions === 1) {
-      newInterval = 6;
-    } else {
-      newInterval = Math.round(previousInterval * newEaseFactor);
-    }
-    newRepetitions += 1;
-  } else {
-    // Incorrect response
+  if (rating === "again") {
     newRepetitions = 0;
-    newInterval = 1;
+    if (currentState === "review") {
+      // Lapsed card
+      newLapseCount += 1;
+      nextState = "relearning";
+      newInterval = Math.max(1, Math.round(previousInterval * 0.2)); // 20% penalty
+    } else {
+      nextState = "learning";
+      newInterval = 0; // Same day review
+    }
+  } else {
+    // Correct response
+    if (currentState === "new" || currentState === "learning" || currentState === "relearning") {
+      // Graduate to review
+      nextState = "review";
+      if (rating === "easy") {
+        newInterval = 4;
+      } else if (rating === "good") {
+        newInterval = 1;
+      } else {
+        // hard
+        newInterval = 0; 
+        nextState = currentState; // don't graduate yet
+      }
+      newRepetitions = 1;
+    } else {
+      // Already in review state
+      if (newRepetitions === 0) {
+        newInterval = 1;
+      } else if (newRepetitions === 1) {
+        newInterval = 6;
+      } else {
+        const hardFactor = 1.2;
+        const easyBonus = 1.3;
+        
+        if (rating === "hard") {
+           newInterval = Math.round(previousInterval * hardFactor);
+        } else if (rating === "good") {
+           newInterval = Math.round(previousInterval * previousEaseFactor);
+        } else if (rating === "easy") {
+           newInterval = Math.round(previousInterval * previousEaseFactor * easyBonus);
+        }
+      }
+      newRepetitions += 1;
+    }
   }
+
+  // Adjust Ease Factor (EF)
+  newEaseFactor = previousEaseFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+  if (newEaseFactor < 1.3) newEaseFactor = 1.3;
 
   return {
     interval: newInterval,
     repetitions: newRepetitions,
     easeFactor: Number(newEaseFactor.toFixed(3)),
+    state: nextState,
+    lapseCount: newLapseCount
   };
 }

@@ -19,14 +19,16 @@ export function ReviewClient({ initialCards }: { initialCards: any[] }) {
 
 
 
-  const handleRate = async (quality: number) => {
+  const handleRate = async (rating: "again" | "hard" | "good" | "easy", timeSpentMs: number) => {
     if (isProcessing) return;
     setIsProcessing(true);
 
     try {
       const currentCard = cards[currentIndex];
+      // Convert timeSpentMs to seconds for DB
+      const timeSpentSecs = timeSpentMs / 1000;
       // Call the Server Action to process the SM-2 logic and update DB
-      await processReviewAction(currentCard.id, quality);
+      await processReviewAction(currentCard.id, rating, timeSpentSecs);
 
       // Move to next card
       if (currentIndex < cards.length - 1) {
