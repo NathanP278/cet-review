@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { SubjectCard } from "@/components/domain/SubjectCard";
 import { BookOpen } from "lucide-react";
 
+export const revalidate = 3600;
+
 export default async function SubjectsPage() {
   const supabase = await createClient();
 
