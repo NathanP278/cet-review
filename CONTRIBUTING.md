@@ -1,6 +1,6 @@
-# Contributing to UPCAT Prep
+# Contributing to CET Prep
 
-First off, thank you for considering contributing to UPCAT Prep! 
+First off, thank you for considering contributing to CET Prep! 
 
 ## Branching Strategy
 

@@ -24,15 +24,6 @@ export default async function SubjectsPage() {
     console.error("Error fetching subjects:", error);
   }
 
-  // Calculate mock accuracy for MVP (in a real app, this would be computed from user_cards or quiz_attempts)
-  const getMockAccuracy = (name: string) => {
-    if (name.includes("Math")) return 65;
-    if (name.includes("Science")) return 82;
-    if (name.includes("Language")) return 45;
-    if (name.includes("Reading")) return 90;
-    return 0;
-  };
-
   return (
     <div className="flex flex-col gap-8 max-w-5xl mx-auto">
       <div>
@@ -43,8 +34,8 @@ export default async function SubjectsPage() {
           <h1 className="text-3xl font-bold font-display">Subject Directory</h1>
         </div>
         <p className="text-[var(--muted)] max-w-2xl">
-          Focus your practice on specific areas. Track your mastery across all UPCAT subtests to
-          ensure you are fully prepared for exam day.
+          Focus your practice on specific areas. Track your mastery across all CET subtests to
+          ensure you&apos;re exam-ready.
         </p>
       </div>
 
@@ -62,7 +53,7 @@ export default async function SubjectsPage() {
               description={subject.description || "No description available."}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               topicsCount={(subject.topics as any)?.[0]?.count || 0}
-              accuracy={getMockAccuracy(subject.name)}
+              accuracy={0}
             />
           ))}
         </div>

@@ -16,13 +16,16 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "UPCAT Prep — Ace Your College Entrance Exam",
-    template: "%s | UPCAT Prep",
+    default: "CET Prep — Ace Your College Entrance Exam",
+    template: "%s | CET Prep",
   },
   description:
-    "The only UPCAT prep platform powered by cognitive science. Stop cramming. Start remembering. Spaced repetition, mock exams, and personalized study plans for Filipino students.",
+    "The only CET prep platform powered by cognitive science. Stop cramming. Start remembering. Spaced repetition, mock exams, and personalized study plans for Filipino students.",
   keywords: [
-    "UPCAT",
+    "CET",
+    "ACET",
+    "DCAT",
+    "USTET",
     "ACET",
     "DCAT",
     "college entrance exam",
@@ -31,14 +34,14 @@ export const metadata: Metadata = {
     "spaced repetition",
     "flashcards",
   ],
-  authors: [{ name: "UPCAT Prep" }],
-  metadataBase: new URL("https://upcatprep.vercel.app"),
+  authors: [{ name: "CET Prep" }],
+  metadataBase: new URL("https://cetprep.vercel.app"),
   openGraph: {
     type: "website",
-    siteName: "UPCAT Prep",
-    title: "UPCAT Prep — Ace Your College Entrance Exam",
+    siteName: "CET Prep",
+    title: "CET Prep — Ace Your College Entrance Exam",
     description:
-      "Science-backed UPCAT preparation. Spaced repetition, dynamic mock exams, and personalized study plans.",
+      "Science-backed CET preparation. Spaced repetition, dynamic mock exams, and personalized study plans.",
   },
 };
 

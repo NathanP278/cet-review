@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { Database } from "@/types/database";
 
-export async function createClient() {
+export async function createClient(cookieOptionsOverrides?: { maxAge?: number }) {
   const cookieStore = await cookies();
 
   return createServerClient<Database>(
@@ -16,7 +16,10 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
+              cookieStore.set(name, value, {
+                ...options,
+                ...cookieOptionsOverrides,
+              });
             });
           } catch {
             // The `set` method was called from a Server Component.

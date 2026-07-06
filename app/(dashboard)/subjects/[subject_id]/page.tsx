@@ -33,16 +33,16 @@ export default async function SubjectHubPage({
     .eq("subject_id", subject_id)
     .order("name");
 
-  // Generate mock progress for topics for MVP
+  // Generate progress for topics
   const topicsWithMockProgress =
-    topics?.map((t, index) => ({
+    topics?.map((t) => ({
       id: t.id,
       name: t.name,
-      progress: Math.max(0, 100 - index * 15 - (index % 3) * 5), // decay progress for lower items
-      notes: `These are the notes for ${t.name}. They should cover fundamental concepts, formulas, and common pitfalls seen in the UPCAT.`,
+      progress: 0, // No fake progress
+      notes: `These are the notes for ${t.name}. They should cover fundamental concepts, formulas, and common pitfalls seen in the CET.`,
     })) || [];
 
-  const overallAccuracy = 75; // Mock overall accuracy
+  const overallAccuracy = 0; // No fake progress
 
   return (
     <div className="flex flex-col gap-8 max-w-4xl mx-auto">
