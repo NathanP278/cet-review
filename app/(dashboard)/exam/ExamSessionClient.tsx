@@ -34,6 +34,12 @@ export function ExamSessionClient({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>(initialAnswers);
   const [flagged, setFlagged] = useState<Set<number>>(new Set(initialFlagged));
+  const [timePerQuestion, setTimePerQuestion] = useState<Record<number, number>>({});
+  
+  // M20: Optimistic Locking version
+  const versionRef = useRef(1);
+  const isVisibilityHiddenRef = useRef(false);
+  const currentQuestionActiveSinceRef = useRef<number>(Date.now());
   
   const remainingSecondsRef = useRef(initialRemainingSeconds);
   const [isFinished, setIsFinished] = useState(false);
@@ -72,16 +78,67 @@ export function ExamSessionClient({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [questions.length]);
 
-  // Debounced Autosave
+  // Visibility API for accurate time tracking
   useEffect(() => {
-    const handler = setTimeout(() => {
+    const handleVisibilityChange = () => {
+      isVisibilityHiddenRef.current = document.hidden;
+      if (document.hidden) {
+        // Tab hidden: pause the active timer
+        const elapsed = (Date.now() - currentQuestionActiveSinceRef.current) / 1000;
+        setTimePerQuestion(prev => ({
+          ...prev,
+          [currentIndex]: (prev[currentIndex] || 0) + elapsed
+        }));
+      } else {
+        // Tab visible again: resume the active timer
+        currentQuestionActiveSinceRef.current = Date.now();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [currentIndex]);
+
+  // Track time when switching questions
+  useEffect(() => {
+    if (!isVisibilityHiddenRef.current) {
+      const elapsed = (Date.now() - currentQuestionActiveSinceRef.current) / 1000;
+      setTimePerQuestion(prev => ({
+        ...prev,
+        [currentIndex]: (prev[currentIndex] || 0) + elapsed
+      }));
+    }
+    currentQuestionActiveSinceRef.current = Date.now();
+  }, [currentIndex]);
+
+  // Debounced Autosave with Optimistic Locking
+  useEffect(() => {
+    const handler = setTimeout(async () => {
       if (!isFinished && !isSubmitting) {
-        saveExamState(attemptId, answers, Array.from(flagged), remainingSecondsRef.current);
+        // Flush active time for current question before saving
+        const elapsed = (Date.now() - currentQuestionActiveSinceRef.current) / 1000;
+        const currentTracking = { ...timePerQuestion, [currentIndex]: (timePerQuestion[currentIndex] || 0) + elapsed };
+        
+        const res = await saveExamState(
+          attemptId, 
+          answers, 
+          Array.from(flagged), 
+          currentTracking,
+          remainingSecondsRef.current,
+          versionRef.current
+        );
+
+        if (res.conflict) {
+          console.warn("Version conflict detected during autosave!");
+          // Depending on the UX, we might want to reload state or prompt the user.
+          // For now, we rely on the server keeping the state consistent.
+        } else if (res.success && res.version) {
+          versionRef.current = res.version;
+        }
       }
     }, 2000); // Autosave 2 seconds after last change
 
     return () => clearTimeout(handler);
-  }, [answers, flagged, attemptId, isFinished, isSubmitting]);
+  }, [answers, flagged, attemptId, isFinished, isSubmitting, timePerQuestion]);
 
   const handleSelect = useCallback((optionId: string) => {
     setAnswers((prev) => ({ ...prev, [currentIndex]: optionId }));
@@ -104,7 +161,11 @@ export function ExamSessionClient({
     setIsSubmitting(true);
 
     // Save final state first just in case
-    await saveExamState(attemptId, answers, Array.from(flagged), remainingSecondsRef.current);
+    // Flush the last bits of active time
+    const elapsed = (Date.now() - currentQuestionActiveSinceRef.current) / 1000;
+    const finalTimeTracking = { ...timePerQuestion, [currentIndex]: (timePerQuestion[currentIndex] || 0) + elapsed };
+
+    await saveExamState(attemptId, answers, Array.from(flagged), finalTimeTracking, remainingSecondsRef.current, versionRef.current);
     
     // Call server action to grade
     try {

@@ -6,6 +6,9 @@ import { Flame, PlayCircle, TrendingUp, BookOpen, Clock, CalendarDays } from "lu
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ReviewHeatmap } from "@/components/domain/ReviewHeatmap";
+import { StudyInsightsList } from "@/components/domain/StudyInsightsList";
+import { calculateReadiness } from "@/lib/intelligence/readiness";
+import { generateStudyInsights } from "@/lib/intelligence/insights";
 
 import { getUser } from "@/lib/auth";
 
@@ -138,17 +141,12 @@ export default async function DashboardPage() {
   const cardsDueToday = dueCount || 0;
   const completedToday = reviewsCompletedToday || 0;
 
-  // Calculate CET Readiness
-  // Rough estimate: combine topic mastery % and recent mock exam scores
-  let cetReadiness = 0;
-  if (mockExams && mockExams.length > 0) {
-    const recentScores = mockExams.slice(0, 3).map((e) => e.score_data.totalScore / Math.max(1, e.score_data.totalQuestions));
-    const avgRecentMock = recentScores.reduce((a, b) => a + b, 0) / recentScores.length;
-    cetReadiness = Math.round(avgRecentMock * 100);
-  } else if (topicsStarted > 0) {
-    // Fallback to purely mastery-based readiness
-    cetReadiness = Math.round((topicsMastered / Math.max(1, topicsStarted)) * 50); // Cap at 50% if no exams taken
-  }
+  // Calculate CET Readiness using M20 Readiness Engine
+  const readinessMetrics = await calculateReadiness(user.id);
+  const cetReadiness = readinessMetrics.overallScore;
+
+  // Generate Study Insights using M20 Insights Engine
+  const insights = await generateStudyInsights(user.id, readinessMetrics);
 
   // Merge recent activity
   const recentActivity = [];
@@ -202,13 +200,20 @@ export default async function DashboardPage() {
         <Card className="col-span-1 border-t-4 border-t-[var(--color-secondary)]">
           <CardHeader className="pb-2">
             <CardTitle>CET Readiness</CardTitle>
-            <CardDescription>Based on Mock Exams & Mastery</CardDescription>
+            <CardDescription>
+              {readinessMetrics.confidenceScore < 30 ? "Need more data" : readinessMetrics.trend === "improving" ? "Trending Upward" : "Based on AI Model"}
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center py-6 gap-4">
             <AccuracyRing accuracy={cetReadiness} size={140} label="Readiness" />
-            <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
-              <BookOpen className="h-4 w-4 text-[var(--color-secondary)]" />
-              <span>{mockExams?.length || 0} Exams Taken</span>
+            <div className="flex flex-col items-center gap-1 text-sm text-[var(--muted)]">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-[var(--color-secondary)]" />
+                <span>{mockExams?.length || 0} Exams Taken</span>
+              </div>
+              {readinessMetrics.estimatedExamDayScore > 0 && (
+                <span className="text-xs">Est. Exam Day Score: <strong>{readinessMetrics.estimatedExamDayScore}%</strong></span>
+              )}
             </div>
             {(!mockExams || mockExams.length === 0) && (
               <Link href="/exam">
@@ -270,6 +275,11 @@ export default async function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* M20 Study Insights Engine */}
+      <div className="w-full">
+        <StudyInsightsList insights={insights} />
       </div>
 
       {/* Learning Journey Stats */}

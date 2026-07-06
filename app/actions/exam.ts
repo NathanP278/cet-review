@@ -22,12 +22,13 @@ export async function createExamSession(config: ExamConfig) {
   }
 
   // Generate Blueprint - fetch randomized questions via RPC
-  const { data: questions, error: rpcError } = await supabase.rpc("get_randomized_questions", {
+  const { data: questions, error: rpcError } = await supabase.rpc("get_scalable_random_questions", {
     p_limit: config.questionCount,
     p_subject_id: config.subjectId || null,
     p_category_id: config.categoryId || null,
     p_topic_id: config.topicId || null,
     p_difficulty: config.difficulty || null,
+    p_seed: Math.random(), // Add a random seed
   });
 
   if (rpcError || !questions) {
@@ -68,7 +69,9 @@ export async function saveExamState(
   attemptId: string,
   answers: Record<number, string>,
   flagged: number[],
-  remainingSeconds: number
+  timePerQuestion: Record<number, number>,
+  remainingSeconds: number,
+  expectedVersion: number
 ) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -77,39 +80,28 @@ export async function saveExamState(
     throw new Error("Unauthorized");
   }
 
-  // We read current state, update it, and write it back.
-  // In a high-concurrency app we'd use raw SQL jsonb updates, but for MVP this is fine since it's just the user.
-  const { data: attempt } = await supabase
-    .from("mock_exam_attempts")
-    .select("state")
-    .eq("id", attemptId)
-    .eq("user_id", user.id)
-    .single();
+  // Use the atomic optimistic locking RPC
+  const { data: newVersion, error } = await supabase.rpc("update_exam_state", {
+    p_attempt_id: attemptId,
+    p_user_id: user.id,
+    p_expected_version: expectedVersion,
+    p_new_answers: answers as any,
+    p_new_flagged: flagged as any,
+    p_new_time_per_question: timePerQuestion as any,
+    p_remaining_seconds: remainingSeconds,
+  });
 
-  if (!attempt) return { success: false };
-
-  const currentState = attempt.state as any;
-
-  const { error } = await supabase
-    .from("mock_exam_attempts")
-    .update({
-      state: {
-        ...currentState,
-        answers,
-        flagged,
-        remainingSeconds,
-      },
-    })
-    .eq("id", attemptId)
-    .eq("user_id", user.id)
-    .eq("status", "in_progress");
-
-  if (error) {
-    console.error("Failed to autosave exam state:", error);
-    return { success: false };
+  if (error || newVersion === -1) {
+    console.error("Failed to autosave exam state - Conflict or Error:", error || "Version mismatch");
+    return { success: false, conflict: true };
+  }
+  
+  if (newVersion === 0) {
+    console.error("Attempt not found or not in progress");
+    return { success: false, conflict: false };
   }
 
-  return { success: true };
+  return { success: true, version: newVersion, conflict: false };
 }
 
 import { processBatchSM2Updates } from "./sm2";
@@ -138,6 +130,7 @@ export async function submitExam(attemptId: string) {
   const config = attempt.config as any;
   const questionIds: string[] = state.questions || [];
   const answers: Record<number, string> = state.answers || {};
+  const timePerQuestionData: Record<number, number> = state.timePerQuestion || {};
   const remainingSeconds = state.remainingSeconds;
   
   const timeSpent = Math.max(1, config.timeLimitSeconds - remainingSeconds);
@@ -181,10 +174,9 @@ export async function submitExam(attemptId: string) {
       subjectMap[subjectName].score += 1;
     }
 
-    // Estimate time spent per question: total time / number of answered questions
-    // This is rough but sufficient for SM-2 if we don't track per-question time precisely
-    const answeredCount = Object.keys(answers).length || 1;
-    const timePerQuestion = Math.round(timeSpent / answeredCount);
+    // Use precisely tracked time if available, otherwise fallback to an even split
+    const trackedTime = timePerQuestionData[idx];
+    const timePerQuestion = trackedTime !== undefined ? trackedTime : Math.round(timeSpent / (Object.keys(answers).length || 1));
 
     if (userAnswer) {
       sm2Updates.push({

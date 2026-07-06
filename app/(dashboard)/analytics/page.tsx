@@ -4,7 +4,9 @@ import { StudyInsights } from "@/components/domain/StudyInsights";
 import { MemoryForecast } from "@/components/domain/MemoryForecast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AlertCircle, Target, TrendingUp, Zap } from "lucide-react";
-import { generateInsights, calculateMomentum } from "@/lib/insights";
+import { calculateReadiness } from "@/lib/intelligence/readiness";
+import { generateStudyInsights } from "@/lib/intelligence/insights";
+import { StudyInsightsList } from "@/components/domain/StudyInsightsList";
 import { getUser } from "@/lib/auth";
 
 export default async function AnalyticsPage() {
@@ -109,8 +111,9 @@ export default async function AnalyticsPage() {
     .select("next_review, retention_score")
     .eq("user_id", user.id);
 
-  const insights = generateInsights(reviewHistory || [], allUserCards || [], []);
-  const momentum = calculateMomentum(reviewHistory || []);
+  const readinessMetrics = await calculateReadiness(user.id);
+  const insights = await generateStudyInsights(user.id, readinessMetrics);
+  const momentum = readinessMetrics.trend === "improving" ? "Improving" : readinessMetrics.trend === "declining" ? "Declining" : "Stable";
 
   const forecastCounts = new Map<string, number>();
   const today = new Date();
@@ -228,7 +231,7 @@ export default async function AnalyticsPage() {
 
         {/* Intelligent Insights */}
         <div className="col-span-1 md:col-span-2">
-          <StudyInsights insights={insights} />
+          <StudyInsightsList insights={insights} />
         </div>
 
         {/* Memory Forecast */}

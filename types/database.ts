@@ -123,6 +123,7 @@ export type Database = {
           state: Json | null
           status: Database["public"]["Enums"]["exam_status"] | null
           user_id: string
+          version: number | null
         }
         Insert: {
           config?: Json | null
@@ -132,6 +133,7 @@ export type Database = {
           state?: Json | null
           status?: Database["public"]["Enums"]["exam_status"] | null
           user_id: string
+          version?: number | null
         }
         Update: {
           config?: Json | null
@@ -141,6 +143,7 @@ export type Database = {
           state?: Json | null
           status?: Database["public"]["Enums"]["exam_status"] | null
           user_id?: string
+          version?: number | null
         }
         Relationships: [
           {
@@ -240,6 +243,7 @@ export type Database = {
           tags: string[] | null
           topic_id: string | null
           type: Database["public"]["Enums"]["question_type"]
+          random_weight: number | null
         }
         Insert: {
           answer: string
@@ -259,6 +263,7 @@ export type Database = {
           tags?: string[] | null
           topic_id?: string | null
           type: Database["public"]["Enums"]["question_type"]
+          random_weight?: number | null
         }
         Update: {
           answer?: string
@@ -278,6 +283,7 @@ export type Database = {
           tags?: string[] | null
           topic_id?: string | null
           type?: Database["public"]["Enums"]["question_type"]
+          random_weight?: number | null
         }
         Relationships: [
           {
