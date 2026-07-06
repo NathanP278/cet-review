@@ -6,7 +6,7 @@ export interface SM2Result {
 
 /**
  * Calculates the next review interval using the SM-2 Spaced Repetition Algorithm.
- * 
+ *
  * @param quality - Quality of response (0-5)
  *  5: perfect response
  *  4: correct response after a hesitation
@@ -27,7 +27,7 @@ export function calculateSM2(
 ): SM2Result {
   // Ensure quality is between 0 and 5
   const q = Math.max(0, Math.min(5, Math.round(quality)));
-  
+
   let newRepetitions = repetitions;
   let newInterval = previousInterval;
   let newEaseFactor = previousEaseFactor;

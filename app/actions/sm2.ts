@@ -3,12 +3,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { calculateSM2 } from "@/lib/sm2";
 
-export async function processReviewAction(
-  userCardId: string,
-  quality: number
-) {
+export async function processReviewAction(userCardId: string, quality: number) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     throw new Error("Unauthorized");
@@ -27,12 +26,7 @@ export async function processReviewAction(
   }
 
   // 2. Calculate next state using SM-2
-  const sm2Result = calculateSM2(
-    quality,
-    card.repetitions,
-    card.interval,
-    card.ease_factor
-  );
+  const sm2Result = calculateSM2(quality, card.repetitions, card.interval, card.ease_factor);
 
   // 3. Calculate next review date (add interval in days)
   const nextReviewDate = new Date();
