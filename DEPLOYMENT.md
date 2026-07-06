@@ -1,6 +1,6 @@
-# UPCAT Prep Deployment Guide
+# CET Prep Deployment Guide
 
-This document outlines the end-to-end setup, development, and production deployment process for the UPCAT Prep application.
+This document outlines the end-to-end setup, development, and production deployment process for the CET Prep application.
 
 ## 1. Local Setup & Development
 

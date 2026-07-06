@@ -20,7 +20,7 @@ export function Sidebar() {
     <aside className="hidden w-64 flex-col border-r border-[var(--border)] bg-[var(--surface)] sm:flex">
       <div className="flex h-16 items-center border-b border-[var(--border)] px-6">
         <span className="font-display text-xl font-bold text-[var(--color-primary)]">
-          UPCAT Prep
+          CET Prep
         </span>
       </div>
       <nav className="flex flex-1 flex-col gap-2 p-4">

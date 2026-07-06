@@ -1,10 +1,11 @@
--- Seed Data for UPCAT Prep
+-- Seed Data for CET Prep
 
 -- 1. Insert Subjects
 INSERT INTO subjects (id, name, description) VALUES
 ('b3d87563-0941-4cf4-946d-3171120dc6e7', 'Mathematics', 'Algebra, Geometry, Trigonometry, and Statistics'),
 ('c4e87563-0941-4cf4-946d-3171120dc6e8', 'Science', 'Biology, Chemistry, Physics, and Earth Science'),
-('d5f87563-0941-4cf4-946d-3171120dc6e9', 'Language Proficiency', 'English and Filipino Grammar, Vocabulary, and Reading Comprehension')
+('d5f87563-0941-4cf4-946d-3171120dc6e9', 'English Grammar & Vocabulary', 'Grammar rules, sentence structure, and vocabulary'),
+('e6187563-0941-4cf4-946d-3171120dc6ea', 'Reading Comprehension', 'Analyzing texts, inference, and context clues')
 ON CONFLICT DO NOTHING;
 
 -- 2. Insert Topics

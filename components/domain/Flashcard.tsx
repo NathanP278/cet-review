@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -24,6 +24,33 @@ export function Flashcard({ frontContent, backContent, onRate }: FlashcardProps)
     // Reset flip state immediately for the next card (handled by parent passing new props, but good measure)
     setIsFlipped(false);
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (!isFlipped && e.code === "Space") {
+        e.preventDefault();
+        handleFlip();
+      } else if (isFlipped) {
+        const keyMap: Record<string, number> = {
+          Digit1: 0,
+          Digit2: 1,
+          Digit3: 2,
+          Digit4: 3,
+          Digit5: 4,
+          Digit6: 5,
+        };
+        if (e.code in keyMap) {
+          e.preventDefault();
+          handleRate(keyMap[e.code]);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFlipped, onRate]);
 
   return (
     <div className="flex flex-col items-center w-full max-w-2xl mx-auto">

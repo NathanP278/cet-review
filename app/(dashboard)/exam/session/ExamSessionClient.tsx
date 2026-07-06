@@ -8,7 +8,7 @@ import { QuizQuestion } from "@/components/domain/QuizQuestion";
 import { QuizOptions, type Option } from "@/components/domain/QuizOptions";
 import { ExamResults, type SubjectScore } from "@/components/domain/ExamResults";
 import { Button } from "@/components/ui/button";
-import { Loader2, Flag, ArrowRight, ArrowLeft } from "lucide-react";
+import { Loader2, Flag, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const EXAM_DURATION_SECONDS = 7200; // 120 minutes
@@ -39,6 +39,23 @@ export function ExamSessionClient({ initialQuestions }: { initialQuestions: any[
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isFinished]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setCurrentIndex((c) => Math.max(0, c - 1));
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setCurrentIndex((c) => Math.min(questions.length - 1, c + 1));
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [questions.length]);
 
 
 
@@ -242,15 +259,33 @@ export function ExamSessionClient({ initialQuestions }: { initialQuestions: any[
             <ArrowLeft className="h-4 w-4" />
             Previous
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => setCurrentIndex((c) => Math.min(questions.length - 1, c + 1))}
-            disabled={currentIndex === questions.length - 1}
-            className="gap-2"
-          >
-            Next
-            <ArrowRight className="h-4 w-4" />
-          </Button>
+          {currentIndex === questions.length - 1 ? (
+            <Button
+              variant="default"
+              onClick={() => {
+                if (
+                  confirm("Are you sure you want to submit the exam? You cannot undo this action.")
+                ) {
+                  handleSubmit();
+                }
+              }}
+              disabled={isSubmitting}
+              className="gap-2 bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)]"
+            >
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Submit Exam
+              <CheckCircle2 className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={() => setCurrentIndex((c) => Math.min(questions.length - 1, c + 1))}
+              className="gap-2"
+            >
+              Next
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
     </div>

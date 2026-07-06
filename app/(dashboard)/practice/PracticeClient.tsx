@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { QuizQuestion } from "@/components/domain/QuizQuestion";
 import { QuizOptions, type Option } from "@/components/domain/QuizOptions";
@@ -36,7 +36,6 @@ export function PracticeClient({ initialQuestions }: { initialQuestions: any[] }
     }
     setLoading(false);
   };
-
 
   const handleSelect = (optionId: string) => {
     if (isRevealed) return; // prevent changing answer after reveal
@@ -103,6 +102,24 @@ export function PracticeClient({ initialQuestions }: { initialQuestions: any[] }
       }
     }
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (!isRevealed && selectedOption) {
+          handleSubmit();
+        } else if (isRevealed) {
+          handleNext();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRevealed, selectedOption, currentIndex, questions.length]);
 
   if (loading) {
     return (

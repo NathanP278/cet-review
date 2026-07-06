@@ -4,7 +4,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="w-full max-w-md space-y-8 bg-[var(--surface)] p-8 rounded-xl border border-[var(--border)] shadow-sm">
         <div className="text-center">
           <h2 className="text-3xl font-bold font-display tracking-tight text-[var(--color-primary)]">
-            UPCAT Prep
+            CET Prep
           </h2>
         </div>
         {children}

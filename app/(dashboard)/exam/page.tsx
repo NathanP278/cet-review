@@ -9,14 +9,14 @@ export default function ExamLandingPage() {
       <div>
         <h1 className="text-3xl font-bold font-display">Mock Exam Engine</h1>
         <p className="text-[var(--muted)] mt-2">
-          Simulate the real UPCAT experience under time pressure.
+          Simulate the real CET experience under time pressure.
         </p>
       </div>
 
       <Card className="border-t-4 border-t-[var(--color-primary)]">
         <CardHeader>
           <CardTitle>Full Simulated Exam</CardTitle>
-          <CardDescription>Comprehensive test across all UPCAT subjects.</CardDescription>
+          <CardDescription>Comprehensive test across all CET subjects.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

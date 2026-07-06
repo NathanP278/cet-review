@@ -34,17 +34,20 @@ export async function updateSession(request: NextRequest) {
 
   const isAuthPage =
     request.nextUrl.pathname.startsWith("/login") || request.nextUrl.pathname.startsWith("/signup");
-  const isPublicPage = request.nextUrl.pathname === "/";
 
-  if (!user && !isAuthPage && !isPublicPage) {
-    // no user, redirect to login page if it's not a public or auth page
+  if (!user && !isAuthPage) {
+    // no user, redirect to login page
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
-  } else if (user && isAuthPage) {
-    // user is already logged in, redirect away from auth pages
+  } else if (user && (isAuthPage || request.nextUrl.pathname === "/")) {
+    // user is already logged in, redirect away from auth and root pages
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
+  } else if (!user && request.nextUrl.pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ChevronDown, ChevronUp, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -49,13 +50,17 @@ export function TopicAccordion({ topic }: { topic: TopicProps }) {
             )}
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" size="sm">
-              Review Notes
-            </Button>
-            <Button size="sm" className="gap-2">
-              <PlayCircle className="h-4 w-4" />
-              Practice Topic
-            </Button>
+            <Link href="/review" passHref>
+              <Button variant="outline" size="sm">
+                Spaced Repetition
+              </Button>
+            </Link>
+            <Link href={`/practice?topic=${topic.id}`} passHref>
+              <Button size="sm" className="gap-2">
+                <PlayCircle className="h-4 w-4" />
+                Practice Topic
+              </Button>
+            </Link>
           </div>
         </div>
       )}

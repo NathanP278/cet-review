@@ -43,9 +43,16 @@ export default async function DashboardPage() {
     .eq("user_id", user.id)
     .lte("next_review", now);
 
+  // Fetch streak from profile
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("streak")
+    .eq("id", user.id)
+    .single();
+
   const overallAccuracy = totalQuestions > 0 ? Math.round((totalScore / totalQuestions) * 100) : 0;
   const cardsDueToday = dueCount || 0;
-  const streak = 3; // Mock value for MVP since streak calculation requires a complex query of login dates
+  const streak = profile?.streak || 0;
 
   return (
     <div className="flex flex-col gap-8 max-w-5xl mx-auto">
@@ -69,11 +76,20 @@ export default async function DashboardPage() {
             <CardDescription>Based on your recent practice</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center py-6 gap-4">
-            <AccuracyRing accuracy={overallAccuracy} size={140} label="Mastery" />
-            <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
-              <TrendingUp className="h-4 w-4 text-[var(--color-success)]" />
-              <span>+2% from last week</span>
-            </div>
+            {totalQuestions > 0 ? (
+              <>
+                <AccuracyRing accuracy={overallAccuracy} size={140} label="Mastery" />
+                <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                  <TrendingUp className="h-4 w-4 text-[var(--color-success)]" />
+                  <span>+2% from last week</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center text-center gap-2 h-[140px]">
+                <span className="text-2xl font-bold text-[var(--muted)]">0%</span>
+                <span className="text-sm text-[var(--muted)]">Not Enough Data Yet</span>
+              </div>
+            )}
           </CardContent>
         </Card>
 

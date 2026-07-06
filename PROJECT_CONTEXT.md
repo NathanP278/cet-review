@@ -1,8 +1,8 @@
-# Project Context — UPCAT Prep
+# Project Context — CET Prep
 
 ## Project Summary
 
-A Next.js + Supabase UPCAT exam prep platform powered by the SM-2 Spaced Repetition algorithm. Targets Filipino senior high school students.
+A Next.js + Supabase CET exam prep platform powered by the SM-2 Spaced Repetition algorithm. Targets Filipino senior high school students.
 
 ## Architecture Overview
 
