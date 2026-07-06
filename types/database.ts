@@ -28,6 +28,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: never[];
       };
       subjects: {
         Row: {
@@ -48,6 +49,7 @@ export interface Database {
           description?: string | null;
           created_at?: string;
         };
+        Relationships: never[];
       };
       topics: {
         Row: {
@@ -68,6 +70,7 @@ export interface Database {
           name?: string;
           created_at?: string;
         };
+        Relationships: never[];
       };
       questions: {
         Row: {
@@ -100,6 +103,7 @@ export interface Database {
           choices?: Json | null;
           created_at?: string;
         };
+        Relationships: never[];
       };
       user_cards: {
         Row: {
@@ -135,6 +139,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: never[];
       };
       quiz_attempts: {
         Row: {
@@ -161,6 +166,7 @@ export interface Database {
           total?: number;
           created_at?: string;
         };
+        Relationships: never[];
       };
       mock_exam_attempts: {
         Row: {
@@ -181,7 +187,20 @@ export interface Database {
           score_data?: Json;
           created_at?: string;
         };
+        Relationships: never[];
       };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
     };
   };
 }

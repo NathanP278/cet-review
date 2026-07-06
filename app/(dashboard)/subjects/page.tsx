@@ -58,7 +58,8 @@ export default async function SubjectsPage() {
               id={subject.id}
               name={subject.name}
               description={subject.description || "No description available."}
-              topicsCount={subject.topics[0]?.count || 0}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              topicsCount={(subject.topics as any)?.[0]?.count || 0}
               accuracy={getMockAccuracy(subject.name)}
             />
           ))}

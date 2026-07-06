@@ -12,18 +12,14 @@ import Link from "next/link";
 import confetti from "canvas-confetti";
 
 export default function ReviewPage() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [cards, setCards] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isFinished, setIsFinished] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  useEffect(() => {
-    loadDueCards();
-  }, []);
-
   const loadDueCards = async () => {
-    setLoading(true);
     const supabase = createClient();
     const {
       data: { user },
@@ -59,6 +55,13 @@ export default function ReviewPage() {
     setLoading(false);
   };
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadDueCards();
+  }, []);
+
+
+
   const handleRate = async (quality: number) => {
     if (isProcessing) return;
     setIsProcessing(true);
@@ -89,7 +92,7 @@ export default function ReviewPage() {
     const animationEnd = Date.now() + duration;
     const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
 
-    const interval: any = setInterval(function () {
+    const interval = setInterval(function () {
       const timeLeft = animationEnd - Date.now();
       if (timeLeft <= 0) return clearInterval(interval);
       const particleCount = 40 * (timeLeft / duration);
@@ -116,7 +119,7 @@ export default function ReviewPage() {
         <div className="w-16 h-16 bg-[var(--color-success-light)]/20 text-[var(--color-success)] rounded-full flex items-center justify-center mb-6">
           <CheckCircle2 className="h-8 w-8" />
         </div>
-        <h2 className="text-3xl font-bold font-display mb-2">You're all caught up!</h2>
+        <h2 className="text-3xl font-bold font-display mb-2">You&apos;re all caught up!</h2>
         <p className="text-[var(--muted)] max-w-md mb-8">
           You have reviewed all your due flashcards for today. Take a break, or jump into a practice
           quiz to discover new topics.

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { AccuracyRing } from "@/components/domain/AccuracyRing";
 import Link from "next/link";
 import { BarChart3, ArrowRight, RotateCcw } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export interface SubjectScore {
   name: string;
@@ -35,7 +36,7 @@ export function ExamResults({
       const animationEnd = Date.now() + duration;
       const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
 
-      const interval: any = setInterval(function () {
+      const interval = setInterval(function () {
         const timeLeft = animationEnd - Date.now();
         if (timeLeft <= 0) return clearInterval(interval);
 

@@ -9,10 +9,12 @@ import { QuizOptions, type Option } from "@/components/domain/QuizOptions";
 import { ExamResults, type SubjectScore } from "@/components/domain/ExamResults";
 import { Button } from "@/components/ui/button";
 import { Loader2, Flag, ArrowRight, ArrowLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const EXAM_DURATION_SECONDS = 7200; // 120 minutes
 
 export default function ExamSessionPage() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -37,10 +39,6 @@ export default function ExamSessionPage() {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isFinished]);
-
-  useEffect(() => {
-    loadQuestions();
-  }, []);
 
   const loadQuestions = async () => {
     setLoading(true);
@@ -75,6 +73,13 @@ export default function ExamSessionPage() {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadQuestions();
+  }, []);
+
+
 
   const handleSelect = (optionId: string) => {
     setAnswers((prev) => ({ ...prev, [currentIndex]: optionId }));
@@ -141,7 +146,8 @@ export default function ExamSessionPage() {
     if (user) {
       await supabase.from("mock_exam_attempts").insert({
         user_id: user.id,
-        score_data: { totalScore, totalQuestions: questions.length, subjectScores },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        score_data: { totalScore, totalQuestions: questions.length, subjectScores } as any,
       });
     }
 

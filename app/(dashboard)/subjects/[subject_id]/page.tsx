@@ -27,7 +27,7 @@ export default async function SubjectHubPage({
   }
 
   // Fetch related topics
-  const { data: topics, error: topicsError } = await supabase
+  const { data: topics } = await supabase
     .from("topics")
     .select("*")
     .eq("subject_id", subject_id)
@@ -38,7 +38,7 @@ export default async function SubjectHubPage({
     topics?.map((t, index) => ({
       id: t.id,
       name: t.name,
-      progress: Math.max(0, 100 - index * 15 - Math.random() * 20), // decay progress for lower items
+      progress: Math.max(0, 100 - index * 15 - (index % 3) * 5), // decay progress for lower items
       notes: `These are the notes for ${t.name}. They should cover fundamental concepts, formulas, and common pitfalls seen in the UPCAT.`,
     })) || [];
 

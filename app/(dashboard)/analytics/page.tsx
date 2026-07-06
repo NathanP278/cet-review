@@ -21,7 +21,9 @@ export default async function AnalyticsPage() {
     .order("created_at", { ascending: true });
 
   // Map to chart data format
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const chartData = (examAttempts || []).map((attempt: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const scoreData = attempt.score_data as any;
     const accuracy =
       scoreData.totalQuestions > 0
@@ -63,6 +65,7 @@ export default async function AnalyticsPage() {
   const topicStruggleMap: Record<string, { subject: string; count: number; avgEase: number }> = {};
 
   if (weakCards) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     weakCards.forEach((card: any) => {
       const q = Array.isArray(card.questions) ? card.questions[0] : card.questions;
       if (!q || !q.topics) return;

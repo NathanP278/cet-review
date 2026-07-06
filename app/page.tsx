@@ -43,7 +43,7 @@ export default function Home() {
 
           <p className="text-lg sm:text-xl text-[var(--muted)] max-w-2xl mx-auto leading-relaxed">
             Stop cramming. Our cognitively-backed platform dynamically schedules your UPCAT reviews
-            so you only study what you're about to forget, maximizing long-term retention.
+            so you only study what you&apos;re about to forget, maximizing long-term retention.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
+
 
 export interface TopicProps {
   id: string;

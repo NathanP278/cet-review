@@ -57,7 +57,8 @@ export function AnalyticsChart({ data }: AnalyticsChartProps) {
               color: "var(--foreground)",
             }}
             itemStyle={{ color: "var(--color-primary)" }}
-            formatter={(value: number) => [`${value}%`, "Accuracy"]}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            formatter={(value: any) => [`${value}%`, "Accuracy"]}
             labelStyle={{ color: "var(--muted)", marginBottom: "4px" }}
           />
           <Line

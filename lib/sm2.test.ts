@@ -36,7 +36,7 @@ describe("SM-2 Algorithm", () => {
 
   it("should never let easeFactor drop below 1.3", () => {
     // Simulate many complete blackouts
-    let currentEF = 1.35;
+    const currentEF = 1.35;
     const result = calculateSM2(0, 0, 1, currentEF);
     expect(result.easeFactor).toBe(1.3); // Cannot drop below 1.3
   });

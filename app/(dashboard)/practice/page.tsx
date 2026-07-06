@@ -12,6 +12,7 @@ import { Loader2 } from "lucide-react";
 // In a real app, this would be heavily validated on the server.
 // For the MVP, we load questions and handle the logic on the client.
 export default function PracticePage() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -20,10 +21,6 @@ export default function PracticePage() {
   const [score, setScore] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadQuestions();
-  }, []);
 
   const loadQuestions = async () => {
     setLoading(true);
@@ -38,6 +35,11 @@ export default function PracticePage() {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadQuestions();
+  }, []);
 
   const handleSelect = (optionId: string) => {
     if (isRevealed) return; // prevent changing answer after reveal

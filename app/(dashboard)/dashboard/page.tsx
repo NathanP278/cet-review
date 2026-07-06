@@ -18,10 +18,12 @@ export default async function DashboardPage() {
 
   // Fetch some basic stats for the dashboard (mocked/aggregated for MVP)
   // In a full app, we would query the user_cards for due cards and quiz_attempts for accuracy
-  const { data: attempts } = await supabase
+  const { data: attemptsData } = await supabase
     .from("quiz_attempts")
     .select("score, total")
     .eq("user_id", user.id);
+
+  const attempts = attemptsData as { score: number; total: number }[] | null;
 
   let totalScore = 0;
   let totalQuestions = 0;
@@ -77,7 +79,7 @@ export default async function DashboardPage() {
 
         <Card className="col-span-1 md:col-span-2">
           <CardHeader>
-            <CardTitle>Today's Study Plan</CardTitle>
+            <CardTitle>Today&apos;s Study Plan</CardTitle>
             <CardDescription>Optimized by Spaced Repetition (SM-2)</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
