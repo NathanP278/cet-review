@@ -1,23 +1,150 @@
-export default function DashboardPage() {
-  return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold font-display">Dashboard</h1>
-      <p className="text-[var(--muted)]">Welcome back! Here is your study plan for today.</p>
+import { createClient } from "@/lib/supabase/server";
+import { AccuracyRing } from "@/components/domain/AccuracyRing";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Flame, PlayCircle, TrendingUp, BookOpen, Clock } from "lucide-react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 
-      {/* Placeholders for M8 Dashboard components */}
+export default async function DashboardPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  // Fetch some basic stats for the dashboard (mocked/aggregated for MVP)
+  // In a full app, we would query the user_cards for due cards and quiz_attempts for accuracy
+  const { data: attempts } = await supabase
+    .from("quiz_attempts")
+    .select("score, total")
+    .eq("user_id", user.id);
+
+  let totalScore = 0;
+  let totalQuestions = 0;
+
+  if (attempts) {
+    attempts.forEach((attempt) => {
+      totalScore += attempt.score;
+      totalQuestions += attempt.total;
+    });
+  }
+
+  const overallAccuracy = totalQuestions > 0 ? Math.round((totalScore / totalQuestions) * 100) : 0;
+  const cardsDueToday = 24; // Mock value for MVP
+  const streak = 3; // Mock value
+
+  return (
+    <div className="flex flex-col gap-8 max-w-5xl mx-auto">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold font-display text-[var(--foreground)]">
+            Welcome back, {user.email?.split("@")[0]}!
+          </h1>
+          <p className="text-[var(--muted)] mt-1">Here is your daily study overview.</p>
+        </div>
+        <div className="flex items-center gap-3 bg-[var(--surface)] px-4 py-2 rounded-lg border border-[var(--border)] shadow-sm">
+          <Flame className="h-5 w-5 text-[var(--color-warning)]" />
+          <span className="font-semibold">{streak} Day Streak</span>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="col-span-1 border border-[var(--border)] rounded-lg p-6 bg-[var(--surface)]">
-          <h2 className="font-semibold mb-2">Exam Readiness</h2>
-          <div className="h-32 bg-[var(--color-slate-100)] dark:bg-[var(--color-slate-800)] rounded flex items-center justify-center text-sm text-[var(--muted)]">
-            Ring Placeholder
-          </div>
-        </div>
-        <div className="col-span-1 md:col-span-2 border border-[var(--border)] rounded-lg p-6 bg-[var(--surface)]">
-          <h2 className="font-semibold mb-2">Today's Study</h2>
-          <div className="h-32 bg-[var(--color-slate-100)] dark:bg-[var(--color-slate-800)] rounded flex items-center justify-center text-sm text-[var(--muted)]">
-            CTA Placeholder
-          </div>
-        </div>
+        <Card className="col-span-1 border-t-4 border-t-[var(--color-primary)]">
+          <CardHeader className="pb-2">
+            <CardTitle>Exam Readiness</CardTitle>
+            <CardDescription>Based on your recent practice</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center py-6 gap-4">
+            <AccuracyRing accuracy={overallAccuracy} size={140} label="Mastery" />
+            <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
+              <TrendingUp className="h-4 w-4 text-[var(--color-success)]" />
+              <span>+2% from last week</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="col-span-1 md:col-span-2">
+          <CardHeader>
+            <CardTitle>Today's Study Plan</CardTitle>
+            <CardDescription>Optimized by Spaced Repetition (SM-2)</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-6">
+            <div className="flex items-start gap-4 p-4 rounded-lg bg-[var(--color-slate-100)] dark:bg-[var(--color-slate-800)]/50 border border-[var(--border)]">
+              <div className="p-3 bg-[var(--color-primary)] rounded-full text-white shrink-0">
+                <Clock className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg">Daily Review Due</h3>
+                <p className="text-sm text-[var(--muted)] mb-3">
+                  You have <strong className="text-[var(--foreground)]">{cardsDueToday}</strong>{" "}
+                  concepts due for review today across Math and Science.
+                </p>
+                <Link href="/practice">
+                  <Button className="gap-2 w-full sm:w-auto">
+                    <PlayCircle className="h-4 w-4" />
+                    Start Review Session
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4 p-4 rounded-lg bg-transparent border border-[var(--border)]">
+              <div className="p-3 bg-[var(--color-slate-200)] dark:bg-[var(--color-slate-800)] rounded-full text-[var(--muted)] shrink-0">
+                <BookOpen className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg">Explore New Topics</h3>
+                <p className="text-sm text-[var(--muted)] mb-3">
+                  Ready for more? Dive into new subjects to expand your knowledge base.
+                </p>
+                <Link href="/subjects">
+                  <Button variant="outline" className="w-full sm:w-auto">
+                    Browse Subjects
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div>
+        <h2 className="text-xl font-bold font-display mb-4">Recent Activity</h2>
+        <Card>
+          <CardContent className="p-0">
+            {attempts && attempts.length > 0 ? (
+              <div className="divide-y divide-[var(--border)]">
+                {attempts
+                  .slice(-5)
+                  .reverse()
+                  .map((attempt, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between p-4 hover:bg-[var(--color-slate-100)] dark:hover:bg-[var(--color-slate-800)]/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-2 h-2 rounded-full ${attempt.score / attempt.total >= 0.7 ? "bg-[var(--color-success)]" : "bg-[var(--color-warning)]"}`}
+                        />
+                        <span className="font-medium">Mixed Practice Quiz</span>
+                      </div>
+                      <span className="text-sm font-semibold text-[var(--muted)]">
+                        {attempt.score} / {attempt.total}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center text-[var(--muted)]">
+                No activity yet. Complete a practice session to see it here!
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
