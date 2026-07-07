@@ -1,24 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This is a modern [Next.js](https://nextjs.org) application with a dedicated Python microservice for media processing.
 
 ## Getting Started
 
-First, run the development server:
+The platform consists of two main services that should be run concurrently during development:
 
+1. **The Next.js Frontend/Backend**
 ```bash
 npm run dev
 # or
 yarn dev
 # or
 pnpm dev
-# or
-bun dev
 ```
+Runs the main application on [http://localhost:3000](http://localhost:3000).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. **The Python Media Processor (Microservice)**
+The Academic Intelligence Studio uses a local Python backend to extract and chunk YouTube videos and PDFs.
+```bash
+pnpm run dev:python
+# or manually:
+cd services/media-processor && uv run uvicorn main:app --reload --port 8000
+```
+Runs the media extraction service on `http://localhost:8000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Architecture Note
+This project relies on Supabase for the database, authentication, and backend server actions. Ensure you have the `012_academic_intelligence_studio.sql` migration and preceding schemas applied to your database instance before accessing the `/admin` OS.
 
 ## Learn More
 

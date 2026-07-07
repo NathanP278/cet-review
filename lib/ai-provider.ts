@@ -55,3 +55,40 @@ export async function generateText(prompt: string, systemPrompt?: string): Promi
   const data = await response.json();
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
 }
+
+export async function generateJSON<T>(prompt: string, systemPrompt?: string): Promise<T> {
+  if (!GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY is missing.");
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+  
+  const contents: any[] = [];
+  if (systemPrompt) {
+    contents.push({ role: "user", parts: [{ text: `SYSTEM INSTRUCTION: ${systemPrompt}` }] });
+    contents.push({ role: "model", parts: [{ text: "Understood." }] });
+  }
+  contents.push({ role: "user", parts: [{ text: prompt }] });
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents,
+      generationConfig: {
+        responseMimeType: "application/json",
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Gemini API Error:", errorText);
+    throw new Error(`Failed to generate JSON: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error("No JSON generated.");
+  return JSON.parse(text) as T;
+}

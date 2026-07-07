@@ -1,6 +1,6 @@
 import { requireAdmin } from "@/lib/admin-auth";
 import Link from "next/link";
-import { LayoutDashboard, Users, FileText, Settings, ShieldAlert, Flag, Activity } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Settings, ShieldAlert, Flag, Activity, Brain } from "lucide-react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,6 +28,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/admin" className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition-colors">
             <Activity className="h-4 w-4" /> Analytics
           </Link>
+
+          {role.level >= 50 && (
+            <>
+              <div className="mt-6 mb-2 px-3 text-xs font-bold text-slate-500 uppercase tracking-wider">AI Studio</div>
+              <Link href="/admin/studio" className="flex items-center gap-3 px-3 py-2 rounded-md bg-purple-600/10 text-purple-400 hover:bg-purple-600/20 transition-colors border border-purple-500/20">
+                <Brain className="h-4 w-4" /> Content Studio
+              </Link>
+            </>
+          )}
           
           {role.level >= 50 && (
             <>
