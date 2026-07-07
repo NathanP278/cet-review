@@ -1,29 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Brain, Sparkles, Loader2, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { generateStudioQuestions } from "@/app/actions/studio";
+import { getCompleteCurriculum, CompleteCurriculum } from "@/app/actions/content";
 
 export default function StudioGeneratePage() {
-  const [topic, setTopic] = useState("");
+  const [curriculum, setCurriculum] = useState<CompleteCurriculum[]>([]);
+  const [subjectId, setSubjectId] = useState("");
+  const [topicId, setTopicId] = useState("");
   const [difficulty, setDifficulty] = useState("medium");
   const [count, setCount] = useState(3);
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<{ success: boolean; count?: number; error?: string } | null>(null);
 
+  useEffect(() => {
+    getCompleteCurriculum().then(data => {
+      setCurriculum(data);
+      if (data.length > 0) {
+        setSubjectId(data[0].id);
+        const firstTopic = data[0].categories[0]?.topics[0];
+        if (firstTopic) setTopicId(firstTopic.id);
+      }
+    });
+  }, []);
+
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault();
-    if (!topic.trim()) return;
+    if (!subjectId || !topicId) return;
+
+    // Find the topic name
+    let topicName = "Unknown Topic";
+    for (const sub of curriculum) {
+      if (sub.id === subjectId) {
+        for (const cat of sub.categories) {
+          for (const top of cat.topics) {
+            if (top.id === topicId) topicName = top.name;
+          }
+        }
+      }
+    }
 
     setIsGenerating(true);
     setResult(null);
 
-    // Hardcode subject/topic IDs for MVP presentation
-    const mockSubjectId = "00000000-0000-0000-0000-000000000000"; 
-    const mockTopicId = "00000000-0000-0000-0000-000000000000";
-
-    const res = await generateStudioQuestions(mockSubjectId, mockTopicId, topic, count, difficulty);
+    const res = await generateStudioQuestions(subjectId, topicId, topicName, count, difficulty);
     setResult(res);
     setIsGenerating(false);
   }
@@ -42,15 +64,40 @@ export default function StudioGeneratePage() {
         <form onSubmit={handleGenerate} className="space-y-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Target Topic</label>
-              <input 
-                type="text" 
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="e.g. Newton's Laws of Motion, Cell Biology, Algebraic Functions"
-                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-md bg-transparent text-slate-900 dark:text-white"
-                required
-              />
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Target Subject & Topic</label>
+              <div className="grid grid-cols-2 gap-4">
+                <select 
+                  value={subjectId}
+                  onChange={(e) => {
+                    setSubjectId(e.target.value);
+                    const sub = curriculum.find(s => s.id === e.target.value);
+                    if (sub && sub.categories.length > 0 && sub.categories[0].topics.length > 0) {
+                      setTopicId(sub.categories[0].topics[0].id);
+                    }
+                  }}
+                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-md bg-transparent text-slate-900 dark:text-white"
+                  required
+                >
+                  {curriculum.map(sub => (
+                    <option key={sub.id} value={sub.id}>{sub.name}</option>
+                  ))}
+                </select>
+
+                <select 
+                  value={topicId}
+                  onChange={(e) => setTopicId(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-md bg-transparent text-slate-900 dark:text-white"
+                  required
+                >
+                  {curriculum.find(s => s.id === subjectId)?.categories.map(cat => (
+                    <optgroup key={cat.id} label={cat.name}>
+                      {cat.topics.map(top => (
+                        <option key={top.id} value={top.id}>{top.name}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
@@ -84,7 +131,7 @@ export default function StudioGeneratePage() {
           <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
             <Button 
               type="submit" 
-              disabled={isGenerating || !topic.trim()} 
+              disabled={isGenerating || !subjectId || !topicId} 
               className="bg-purple-600 hover:bg-purple-700 text-white min-w-[140px]"
             >
               {isGenerating ? (
