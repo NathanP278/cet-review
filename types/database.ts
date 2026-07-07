@@ -781,6 +781,453 @@ export type Database = {
           },
         ]
       }
+      user_xp_history: {
+        Row: {
+          id: string
+          user_id: string | null
+          action_type: string
+          xp_awarded: number
+          metadata: Json | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          action_type?: string
+          xp_awarded?: number
+          metadata?: Json | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          action_type?: string
+          xp_awarded?: number
+          metadata?: Json | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      missions: {
+        Row: {
+          id: string
+          title: string
+          description: string
+          mission_type: string
+          target_count: number
+          xp_reward: number
+          action_type: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          title?: string
+          description?: string
+          mission_type?: string
+          target_count?: number
+          xp_reward?: number
+          action_type?: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string
+          mission_type?: string
+          target_count?: number
+          xp_reward?: number
+          action_type?: string
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      user_missions: {
+        Row: {
+          id: string
+          user_id: string | null
+          mission_id: string | null
+          current_progress: number | null
+          is_completed: boolean | null
+          expires_at: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          mission_id?: string | null
+          current_progress?: number | null
+          is_completed?: boolean | null
+          expires_at?: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          mission_id?: string | null
+          current_progress?: number | null
+          is_completed?: boolean | null
+          expires_at?: string
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      admin_roles: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          level: number
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          name?: string
+          description?: string | null
+          level?: number
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          level?: number
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      admin_permissions: {
+        Row: {
+          id: string
+          role_id: string | null
+          resource: string
+          action: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          role_id?: string | null
+          resource?: string
+          action?: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          role_id?: string | null
+          resource?: string
+          action?: string
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          user_id: string | null
+          role_id: string | null
+          assigned_by: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          role_id?: string | null
+          assigned_by?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          role_id?: string | null
+          assigned_by?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_logs: {
+        Row: {
+          id: string
+          admin_id: string | null
+          action: string
+          resource: string
+          resource_id: string | null
+          old_value: Json | null
+          new_value: Json | null
+          ip_address: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          admin_id?: string | null
+          action?: string
+          resource?: string
+          resource_id?: string | null
+          old_value?: Json | null
+          new_value?: Json | null
+          ip_address?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          admin_id?: string | null
+          action?: string
+          resource?: string
+          resource_id?: string | null
+          old_value?: Json | null
+          new_value?: Json | null
+          ip_address?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      user_reports: {
+        Row: {
+          id: string
+          reporter_id: string | null
+          resource_type: string
+          resource_id: string
+          reason: string
+          description: string | null
+          status: string | null
+          resolved_by: string | null
+          resolved_at: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          reporter_id?: string | null
+          resource_type?: string
+          resource_id?: string
+          reason?: string
+          description?: string | null
+          status?: string | null
+          resolved_by?: string | null
+          resolved_at?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          reporter_id?: string | null
+          resource_type?: string
+          resource_id?: string
+          reason?: string
+          description?: string | null
+          status?: string | null
+          resolved_by?: string | null
+          resolved_at?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      feature_flags: {
+        Row: {
+          id: string
+          key: string
+          name: string
+          is_enabled: boolean | null
+          description: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          key?: string
+          name?: string
+          is_enabled?: boolean | null
+          description?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          key?: string
+          name?: string
+          is_enabled?: boolean | null
+          description?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      platform_announcements: {
+        Row: {
+          id: string
+          title: string
+          content: string
+          type: string | null
+          is_active: boolean | null
+          target_audience: string | null
+          created_by: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          title?: string
+          content?: string
+          type?: string | null
+          is_active?: boolean | null
+          target_audience?: string | null
+          created_by?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          title?: string
+          content?: string
+          type?: string | null
+          is_active?: boolean | null
+          target_audience?: string | null
+          created_by?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      ai_generations: {
+        Row: {
+          id: string
+          generator_id: string | null
+          prompt: string
+          provider: string
+          model: string
+          parameters: Json | null
+          output: Json
+          quality_score: number | null
+          processing_time_ms: number | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          generator_id?: string | null
+          prompt?: string
+          provider?: string
+          model?: string
+          parameters?: Json | null
+          output?: Json
+          quality_score?: number | null
+          processing_time_ms?: number | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          generator_id?: string | null
+          prompt?: string
+          provider?: string
+          model?: string
+          parameters?: Json | null
+          output?: Json
+          quality_score?: number | null
+          processing_time_ms?: number | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      content_versions: {
+        Row: {
+          id: string
+          resource_type: string
+          resource_id: string
+          version_number: number
+          data: Json
+          author_id: string | null
+          commit_message: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          resource_type?: string
+          resource_id?: string
+          version_number?: number
+          data?: Json
+          author_id?: string | null
+          commit_message?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          resource_type?: string
+          resource_id?: string
+          version_number?: number
+          data?: Json
+          author_id?: string | null
+          commit_message?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      media_resources: {
+        Row: {
+          id: string
+          type: string
+          url: string | null
+          title: string | null
+          metadata: Json | null
+          status: string | null
+          transcript: string | null
+          summary: string | null
+          uploaded_by: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          type?: string
+          url?: string | null
+          title?: string | null
+          metadata?: Json | null
+          status?: string | null
+          transcript?: string | null
+          summary?: string | null
+          uploaded_by?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          type?: string
+          url?: string | null
+          title?: string | null
+          metadata?: Json | null
+          status?: string | null
+          transcript?: string | null
+          summary?: string | null
+          uploaded_by?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      content_health: {
+        Row: {
+          id: string
+          subject_id: string | null
+          topic_id: string | null
+          total_questions: number | null
+          draft_questions: number | null
+          published_questions: number | null
+          average_quality_score: string | null
+          duplicate_risk_count: number | null
+          last_analyzed_at: string | null
+        }
+        Insert: {
+          id?: string
+          subject_id?: string | null
+          topic_id?: string | null
+          total_questions?: number | null
+          draft_questions?: number | null
+          published_questions?: number | null
+          average_quality_score?: string | null
+          duplicate_risk_count?: number | null
+          last_analyzed_at?: string | null
+        }
+        Update: {
+          id?: string
+          subject_id?: string | null
+          topic_id?: string | null
+          total_questions?: number | null
+          draft_questions?: number | null
+          published_questions?: number | null
+          average_quality_score?: string | null
+          duplicate_risk_count?: number | null
+          last_analyzed_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       subject_mastery_analytics_view: {
