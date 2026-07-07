@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { TopicAccordion } from "@/components/domain/TopicAccordion";
 import { AccuracyRing } from "@/components/domain/AccuracyRing";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -175,12 +174,42 @@ export default async function SubjectHubPage({
 
       <div>
         <h2 className="text-xl font-semibold mb-4">Topics</h2>
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {topicsWithMockProgress.map((topic) => (
-            <TopicAccordion key={topic.id} topic={topic} />
+            <Link
+              key={topic.id}
+              href={`/topics/${topic.id}`}
+              className="block group"
+            >
+              <Card className="h-full border-[var(--border)] bg-[var(--surface)] hover:border-[var(--color-primary)] transition-all overflow-hidden relative shadow-sm hover:shadow-md">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-lg text-[var(--foreground)] group-hover:text-[var(--color-primary)] transition-colors line-clamp-1">
+                      {topic.name}
+                    </h3>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm font-medium">
+                      <span className="text-[var(--muted)]">Mastery</span>
+                      <span className={topic.progress > 80 ? "text-[var(--color-success)]" : topic.progress > 40 ? "text-[var(--color-warning)]" : "text-[var(--muted)]"}>
+                        {topic.progress}%
+                      </span>
+                    </div>
+                    <div className="h-2 w-full bg-[var(--color-slate-100)] dark:bg-[var(--color-slate-800)] rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-[var(--color-primary)] transition-all duration-500 ease-out" 
+                        style={{ width: `${topic.progress}%` }} 
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
           {topicsWithMockProgress.length === 0 && (
-            <p className="text-[var(--muted)] italic">No topics found for this subject.</p>
+            <div className="col-span-full py-12 text-center text-[var(--muted)] border-2 border-dashed rounded-xl">
+              <p>No topics currently available for this subject.</p>
+            </div>
           )}
         </div>
       </div>

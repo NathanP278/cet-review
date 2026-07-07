@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { processBatchSM2Updates } from "./sm2";
+import { revalidatePath } from "next/cache";
 
 export interface QuizFilters {
   subjectId?: string;
@@ -162,6 +163,12 @@ export async function submitQuizAttempt(submissions: QuizSubmission[]): Promise<
 
   await processBatchSM2Updates(sm2Updates);
 
+  // Clear cache for key pages to reflect new mastery and heatmaps immediately
+  revalidatePath("/dashboard");
+  revalidatePath("/practice");
+  revalidatePath("/subjects", "layout");
+  revalidatePath("/topics", "layout");
+
   return {
     score,
     total: submissions.length,
@@ -169,4 +176,21 @@ export async function submitQuizAttempt(submissions: QuizSubmission[]): Promise<
   };
 }
 
+export async function verifyAnswer(questionId: string, userAnswer: string) {
+  const supabase = await createClient();
+  const { data: q } = await supabase
+    .from("questions")
+    .select("answer, explanation")
+    .eq("id", questionId)
+    .single();
 
+  if (!q) throw new Error("Question not found");
+
+  const isCorrect = q.answer === userAnswer;
+
+  return {
+    isCorrect,
+    correctAnswer: q.answer,
+    explanation: q.explanation || "No detailed explanation available.",
+  };
+}
