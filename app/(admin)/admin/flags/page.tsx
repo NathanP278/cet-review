@@ -41,7 +41,7 @@ export default async function AdminFlagsPage() {
                 flag.is_enabled ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
               }`}
               role="switch"
-              aria-checked={flag.is_enabled}
+              aria-checked={flag.is_enabled ?? false}
             >
               <span className="sr-only">Toggle feature</span>
               <span
