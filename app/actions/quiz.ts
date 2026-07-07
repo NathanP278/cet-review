@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { processBatchSM2Updates } from "./sm2";
 import { revalidatePath } from "next/cache";
+import { awardXP, ensureDailyMissions } from "@/app/actions/progression";
 
 export interface QuizFilters {
   subjectId?: string;
@@ -142,17 +143,34 @@ export async function submitQuizAttempt(submissions: QuizSubmission[]): Promise<
     };
   });
 
-  // 1. Record the overall attempt
-  const { data: attemptData, error: insertError } = await supabase.from("quiz_attempts").insert({
-    user_id: user.id,
-    score,
-    total: submissions.length,
-    details: results as any // Store JSON representation of the attempt for detailed history
-  }).select().single();
+  // 1. Record // Create quiz attempt record
+  const { data: attempt, error: attemptError } = await supabase
+    .from("quiz_attempts")
+    .insert({
+      user_id: user.id,
+      score,
+      total: submissions.length,
+      time_spent_seconds: Math.round(totalTimeSeconds),
+      filters: filters as any,
+    })
+    .select()
+    .single();
 
-  if (insertError) {
-    console.error("Failed to insert quiz attempt:", insertError);
+  if (attemptError) {
+    console.error("Failed to save attempt", attemptError);
+    throw new Error("Failed to save quiz attempt.");
   }
+
+  // Progression Engine Integration
+  let multiplier = score / (submissions.length || 1); // 0 to 1.0 based on accuracy
+  if (multiplier === 1.0) multiplier = 1.5; // Perfect score bonus
+  if (multiplier < 0.2) multiplier = 0.2; // Minimum participation XP
+
+  await ensureDailyMissions(user.id);
+  await awardXP("quiz_completed", multiplier, { attemptId: attempt.id, score });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/practice");
 
   // 2. Process SM-2 Spaced Repetition (Batched)
   const sm2Updates = results.map(res => ({

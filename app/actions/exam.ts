@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { Database } from "@/types/database";
+import { awardXP, ensureDailyMissions } from "@/app/actions/progression";
 
 export interface ExamConfig {
   mode: "full" | "subject" | "custom" | "quick";
@@ -291,6 +292,14 @@ export async function submitExam(attemptId: string) {
   if (sm2Updates.length > 0) {
     await processBatchSM2Updates(sm2Updates).catch(console.error);
   }
+
+  // 6. Progression Engine Integration
+  let multiplier = overallAccuracy / 100;
+  if (multiplier === 1.0) multiplier = 2.0; // Huge perfect score bonus for exams
+  if (multiplier < 0.2) multiplier = 0.5; // Minimum participation XP for a full exam
+
+  await ensureDailyMissions(user.id);
+  await awardXP("exam_completed", multiplier, { attemptId, score: totalScore, accuracy: overallAccuracy });
 
   // Clear cache for key pages to reflect new mastery, readiness, and heatmaps immediately
   const { revalidatePath } = await import("next/cache");

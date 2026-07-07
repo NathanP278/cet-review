@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, Flame, User, BrainCircuit, X, LayoutDashboard, Library, PenTool, BarChart3, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -14,7 +15,14 @@ const navItems = [
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
-export function TopBar({ streak = 0 }: { streak?: number }) {
+export interface ProgressionData {
+  level: number;
+  currentLevelXP: number;
+  nextLevelXP: number;
+  progressPct: number;
+}
+
+export function TopBar({ streak = 0, progression }: { streak?: number, progression?: ProgressionData }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -45,6 +53,16 @@ export function TopBar({ streak = 0 }: { streak?: number }) {
           </form>
         </div>
         <div className="flex items-center gap-3">
+          
+          {progression && (
+            <Link href="/leaderboard" className="hidden sm:flex items-center gap-2 mr-2">
+              <div className="flex flex-col items-end gap-1">
+                <span className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-wider leading-none">Level {progression.level}</span>
+                <Progress value={progression.progressPct} className="h-1.5 w-24" />
+              </div>
+            </Link>
+          )}
+
           <div className="flex items-center gap-1.5 rounded-full bg-[var(--color-warning-light)]/20 px-3 py-1 text-sm font-semibold text-[var(--color-warning-dark)] dark:text-[var(--color-warning)] border border-[var(--color-warning-light)]/30 transition-all duration-300">
             <Flame className="h-4 w-4 fill-current animate-pulse" />
             <span>{streak}</span>

@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { calculateSM2, CardState } from "@/lib/sm2";
 import { Database } from "@/types/database";
+import { revalidatePath } from "next/cache";
+import { awardXP, ensureDailyMissions } from "@/app/actions/progression";
 
 type ReviewRating = "again" | "hard" | "good" | "easy";
 type DbCardState = Database["public"]["Enums"]["card_state"];
@@ -98,7 +100,17 @@ export async function processReviewAction(userCardId: string, rating: ReviewRati
     // Non-blocking error
   }
 
-  const { revalidatePath } = await import("next/cache");
+  // 6. Progression Engine Integration
+  // Calculate XP multiplier based on speed and rating
+  let multiplier = 1;
+  if (rating === "easy") multiplier += 0.2;
+  if (rating === "again") multiplier = 0.5; // Still reward some effort for failing
+  if (responseTimeSeconds > 0 && responseTimeSeconds < 10) multiplier += 0.1; // Fast response bonus
+  
+  await ensureDailyMissions(user.id);
+  await awardXP("flashcard_review", multiplier, { cardId: userCardId, rating });
+
+  // Invalidate caches
   revalidatePath("/dashboard");
   revalidatePath("/review");
   revalidatePath("/review/session");
