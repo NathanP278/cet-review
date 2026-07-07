@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Flashcard } from "@/components/domain/Flashcard";
 import { processReviewAction } from "@/app/actions/sm2";
+import { calculateIntervalProjections } from "@/lib/sm2";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2 } from "lucide-react";
@@ -99,6 +100,14 @@ export function ReviewClient({ initialCards }: { initialCards: any[] }) {
     ? currentCard.questions[0]
     : currentCard.questions;
 
+  const intervalProjections = calculateIntervalProjections(
+    currentCard.state,
+    currentCard.repetitions,
+    currentCard.interval,
+    currentCard.ease_factor,
+    currentCard.lapse_count
+  );
+
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-8 py-6">
       <div className="flex flex-col gap-2 mb-4">
@@ -124,6 +133,7 @@ export function ReviewClient({ initialCards }: { initialCards: any[] }) {
           frontContent={question?.question_text || "Missing Question"}
           backContent={question?.correct_answer || "Missing Answer"}
           explanation={question?.explanation}
+          intervalProjections={intervalProjections}
           onRate={handleRate}
         />
       </div>

@@ -98,6 +98,11 @@ export async function processReviewAction(userCardId: string, rating: ReviewRati
     // Non-blocking error
   }
 
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/dashboard");
+  revalidatePath("/review");
+  revalidatePath("/review/session");
+
   return { success: true, sm2Result, nextReviewDate };
 }
 

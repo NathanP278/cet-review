@@ -25,8 +25,12 @@ export function calculateSM2(
   let newEaseFactor = previousEaseFactor;
   let newLapseCount = lapseCount;
 
-  // Convert text rating to standard SM-2 Quality for EF calculation
-  const quality = rating === "again" ? 1 : rating === "hard" ? 2 : rating === "good" ? 3 : 5;
+  // Standard SM-2 Quality mapping
+  // 1 = Blackout (Again)
+  // 3 = Correct but hard (Hard)
+  // 4 = Correct with hesitation (Good)
+  // 5 = Perfect recall (Easy)
+  const quality = rating === "again" ? 1 : rating === "hard" ? 3 : rating === "good" ? 4 : 5;
 
   if (rating === "again") {
     newRepetitions = 0;
@@ -87,4 +91,26 @@ export function calculateSM2(
     state: nextState,
     lapseCount: newLapseCount
   };
+}
+
+/**
+ * Helper to calculate exactly what the next interval will be for each of the 4 buttons,
+ * so the UI can display them to the user.
+ */
+export function calculateIntervalProjections(
+  currentState: CardState,
+  repetitions: number,
+  previousInterval: number,
+  previousEaseFactor: number,
+  lapseCount: number
+) {
+  const ratings = ["again", "hard", "good", "easy"] as const;
+  const projections: Record<string, number> = {};
+
+  ratings.forEach(rating => {
+    const res = calculateSM2(rating, currentState, repetitions, previousInterval, previousEaseFactor, lapseCount);
+    projections[rating] = res.interval;
+  });
+
+  return projections;
 }

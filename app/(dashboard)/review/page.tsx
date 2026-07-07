@@ -21,14 +21,32 @@ export default async function ReviewDashboard() {
   // Fetch all cards for categorization
   const { data: allCards } = await supabase
     .from("user_cards")
-    .select("state, next_review, average_response_time")
+    .select(`
+      state, 
+      next_review, 
+      average_response_time,
+      retention_score,
+      lapse_count,
+      questions (
+        id,
+        topics (
+          name,
+          subjects (name)
+        )
+      )
+    `)
     .eq("user_id", user.id);
 
   let overdue = 0;
   let dueToday = 0;
   let learning = 0;
   let relearning = 0;
+  let graduated = 0;
   let totalEstimatedTimeSeconds = 0;
+  let totalRetention = 0;
+
+  // For forgotten concepts
+  const conceptLapses: Record<string, { subject: string; lapses: number; retention: number }> = {};
 
   const now = new Date();
   const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
@@ -47,8 +65,33 @@ export default async function ReviewDashboard() {
 
       if (card.state === "learning") learning++;
       if (card.state === "relearning") relearning++;
+      if (card.state === "review") graduated++;
+
+      totalRetention += card.retention_score || 0;
+
+      // Track weak concepts
+      if (card.lapse_count > 0) {
+        const q = Array.isArray(card.questions) ? card.questions[0] : card.questions;
+        const t = q && Array.isArray((q as any).topics) ? (q as any).topics[0] : (q as any).topics;
+        const topicName = t ? t.name : "General";
+        const subjectName = t && t.subjects && !Array.isArray(t.subjects) ? t.subjects.name : "General";
+
+        if (!conceptLapses[topicName]) {
+          conceptLapses[topicName] = { subject: subjectName, lapses: 0, retention: 0 };
+        }
+        conceptLapses[topicName].lapses += card.lapse_count;
+        conceptLapses[topicName].retention = Math.max(conceptLapses[topicName].retention, card.retention_score || 0); // Keep highest or avg, let's keep highest for now
+      }
     });
   }
+
+  const totalCards = allCards ? allCards.length : 0;
+  const avgRetention = totalCards > 0 ? Math.round(totalRetention / totalCards) : 100;
+
+  const forgottenConcepts = Object.entries(conceptLapses)
+    .sort((a, b) => b[1].lapses - a[1].lapses)
+    .slice(0, 5)
+    .map(([topic, data]) => ({ topic, ...data }));
 
   const totalDue = overdue + dueToday;
   const estimatedTimeMins = Math.ceil(totalEstimatedTimeSeconds / 60);
@@ -70,6 +113,16 @@ export default async function ReviewDashboard() {
     .gte("reviewed_at", new Date(new Date().setHours(0,0,0,0)).toISOString());
 
   const completed = completedToday || 0;
+
+  // Adaptive recommendation logic
+  let recommendationMessage = "You're all caught up! Take a break or study ahead.";
+  if (overdue > 20) {
+    recommendationMessage = `You have ${overdue} overdue cards. Prioritize clearing your backlog to maintain memory stability.`;
+  } else if (forgottenConcepts.length > 0) {
+    recommendationMessage = `You are frequently forgetting ${forgottenConcepts[0].topic}. Review it today to build stronger retention.`;
+  } else if (totalDue > 0) {
+    recommendationMessage = `You have ${totalDue} cards due today. Complete them to maintain your ${profile?.streak || 0}-day streak!`;
+  }
 
   // Fetch heatmap data (last 90 days)
   const ninetyDaysAgo = new Date();
@@ -96,21 +149,34 @@ export default async function ReviewDashboard() {
   }));
 
   return (
-    <div className="flex flex-col gap-8 max-w-4xl mx-auto py-4">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-bold font-display text-[var(--foreground)] mb-2">
-            Review Session
-          </h1>
-          <p className="text-[var(--muted)] text-lg">Your daily spaced repetition queue.</p>
+    <div className="flex flex-col gap-8 max-w-5xl mx-auto py-4">
+      {/* Header & Recommendation */}
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-bold font-display text-[var(--foreground)] mb-2">
+              Memory Engine
+            </h1>
+            <p className="text-[var(--muted)] text-lg">Intelligent spaced repetition & analytics.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link href="/review/session">
+              <Button size="lg" className="gap-2 text-lg shadow-md px-8 py-6 h-auto">
+                <PlayCircle className="h-6 w-6" />
+                {completed > 0 && totalDue > 0 ? "Continue Review" : totalDue > 0 ? "Start Review" : "Study Ahead"}
+              </Button>
+            </Link>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Link href="/review/session">
-            <Button size="lg" className="gap-2 text-lg shadow-md px-8 py-6 h-auto">
-              <PlayCircle className="h-6 w-6" />
-              {completed > 0 && totalDue > 0 ? "Continue Review" : totalDue > 0 ? "Start Review" : "Study Ahead"}
-            </Button>
-          </Link>
+
+        <div className="bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-300 p-4 rounded-xl flex items-start gap-3">
+          <div className="p-2 bg-purple-500/20 rounded-full mt-0.5">
+            <BarChart3 className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-purple-900 dark:text-purple-100">Adaptive Recommendation</h3>
+            <p className="text-sm opacity-90">{recommendationMessage}</p>
+          </div>
         </div>
       </div>
 
@@ -147,34 +213,58 @@ export default async function ReviewDashboard() {
 
         <Card className="col-span-1 border-[var(--border)] shadow-sm">
            <CardHeader className="bg-[var(--color-slate-100)] dark:bg-[var(--color-slate-800)]/30 rounded-t-xl pb-4 border-b border-[var(--border)]">
-            <CardTitle className="text-xl">Queue Breakdown</CardTitle>
-            <CardDescription>What&apos;s inside your review stack</CardDescription>
+            <CardTitle className="text-xl">Memory Health</CardTitle>
+            <CardDescription>Your long-term retention statistics</CardDescription>
           </CardHeader>
-          <CardContent className="pt-6 flex flex-col justify-center h-full gap-4">
-             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[var(--color-danger)]" />
-                  <span className="font-medium text-[var(--foreground)]">Overdue</span>
-                </div>
-                <span className="font-bold">{overdue}</span>
+          <CardContent className="pt-6 grid grid-cols-2 gap-4">
+             <div className="flex flex-col items-center justify-center p-4 border rounded-xl bg-[var(--surface-raised)]">
+               <span className="text-3xl font-bold text-[var(--color-success)]">{avgRetention}%</span>
+               <span className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mt-1">Avg Retention</span>
              </div>
-             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[var(--color-warning)]" />
-                  <span className="font-medium text-[var(--foreground)]">Relearning</span>
+             <div className="flex flex-col justify-center gap-2 pl-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[var(--muted)]">Graduated</span>
+                  <span className="font-bold">{graduated}</span>
                 </div>
-                <span className="font-bold">{relearning}</span>
-             </div>
-             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-[var(--color-success)]" />
-                  <span className="font-medium text-[var(--foreground)]">Learning</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[var(--muted)]">Learning</span>
+                  <span className="font-bold">{learning + relearning}</span>
                 </div>
-                <span className="font-bold">{learning}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[var(--muted)]">Overdue</span>
+                  <span className="font-bold text-[var(--color-danger)]">{overdue}</span>
+                </div>
              </div>
           </CardContent>
         </Card>
       </div>
+
+      {forgottenConcepts.length > 0 && (
+        <Card className="border-[var(--border)] shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">Forgotten Concepts</CardTitle>
+            <CardDescription>Topics that you frequently struggle to recall.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="divide-y divide-[var(--border)]">
+              {forgottenConcepts.map((concept, idx) => (
+                <div key={idx} className="flex items-center justify-between py-3">
+                  <div className="flex flex-col">
+                    <span className="font-semibold">{concept.topic}</span>
+                    <span className="text-xs text-[var(--muted)]">{concept.subject}</span>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <div className="flex flex-col items-end">
+                      <span className="font-bold text-[var(--color-danger)]">{concept.lapses}</span>
+                      <span className="text-xs text-[var(--muted)] uppercase tracking-wider">Lapses</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Link href="/dashboard" className="col-span-1">

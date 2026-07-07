@@ -12,6 +12,7 @@ export interface FlashcardProps {
   frontContent: string;
   backContent: string;
   explanation?: string | null;
+  intervalProjections: Record<string, number>;
   onRate: (rating: "again" | "hard" | "good" | "easy", timeSpentMs: number) => void;
 }
 
@@ -19,6 +20,7 @@ export function Flashcard({
   frontContent,
   backContent,
   explanation,
+  intervalProjections,
   onRate,
 }: FlashcardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
@@ -30,6 +32,13 @@ export function Flashcard({
     if (!isFlipped) {
       setIsFlipped(true);
     }
+  };
+
+  const formatInterval = (days: number) => {
+    if (days === 0) return "< 10m";
+    if (days < 30) return `${days}d`;
+    if (days < 365) return `${Math.round(days / 30)}mo`;
+    return `${(days / 365).toFixed(1)}y`;
   };
 
   const handleRate = async (rating: "again" | "hard" | "good" | "easy") => {
@@ -190,7 +199,7 @@ export function Flashcard({
             onClick={(e) => { e.stopPropagation(); handleRate("again"); }}
           >
             <span className="text-sm font-bold uppercase tracking-wider">Again</span>
-            <span className="text-[10px] opacity-70 border border-current rounded-sm px-1.5">&lt; 1m</span>
+            <span className="text-[10px] opacity-70 border border-current rounded-sm px-1.5">{formatInterval(intervalProjections.again)}</span>
             <span className="absolute -top-3 right-2 text-[10px] bg-black text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity hidden md:block">1</span>
           </Button>
           <Button
@@ -199,7 +208,7 @@ export function Flashcard({
             onClick={(e) => { e.stopPropagation(); handleRate("hard"); }}
           >
             <span className="text-sm font-bold uppercase tracking-wider">Hard</span>
-            <span className="text-[10px] opacity-70 border border-current rounded-sm px-1.5">&lt; 10m</span>
+            <span className="text-[10px] opacity-70 border border-current rounded-sm px-1.5">{formatInterval(intervalProjections.hard)}</span>
             <span className="absolute -top-3 right-2 text-[10px] bg-black text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity hidden md:block">2</span>
           </Button>
           <Button
@@ -208,7 +217,7 @@ export function Flashcard({
             onClick={(e) => { e.stopPropagation(); handleRate("good"); }}
           >
             <span className="text-sm font-bold uppercase tracking-wider">Good</span>
-            <span className="text-[10px] opacity-70 border border-current rounded-sm px-1.5">1d</span>
+            <span className="text-[10px] opacity-70 border border-current rounded-sm px-1.5">{formatInterval(intervalProjections.good)}</span>
             <span className="absolute -top-3 right-2 text-[10px] bg-black text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity hidden md:block">3</span>
           </Button>
           <Button
@@ -217,7 +226,7 @@ export function Flashcard({
             onClick={(e) => { e.stopPropagation(); handleRate("easy"); }}
           >
             <span className="text-sm font-bold uppercase tracking-wider">Easy</span>
-            <span className="text-[10px] opacity-70 border border-current rounded-sm px-1.5">4d</span>
+            <span className="text-[10px] opacity-70 border border-current rounded-sm px-1.5">{formatInterval(intervalProjections.easy)}</span>
             <span className="absolute -top-3 right-2 text-[10px] bg-black text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity hidden md:block">4</span>
           </Button>
         </div>
