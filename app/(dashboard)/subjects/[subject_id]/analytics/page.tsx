@@ -45,7 +45,7 @@ export default async function SubjectAnalyticsPage({ params }: PageProps) {
   // Fetch weakest topics in this subject
   const { data: weakTopicsData } = await supabase
     .from("topic_mastery_view")
-    .select("topic_id, topic_name, mastery_percentage")
+    .select("topic_id, mastery_percentage")
     .eq("user_id", user.id)
     .eq("subject_id", subject_id)
     .order("mastery_percentage", { ascending: true })
@@ -98,7 +98,7 @@ export default async function SubjectAnalyticsPage({ params }: PageProps) {
               weakTopicsData.map((topic) => (
                 <div key={topic.topic_id} className="p-4 flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold">{topic.topic_name}</h3>
+                    <div className="font-medium">Topic {topic.topic_id?.slice(0, 8)}</div>
                     <p className="text-sm text-[var(--muted)] flex items-center gap-1">
                       <AlertTriangle className="h-4 w-4 text-[var(--color-warning)]" />
                       {topic.mastery_percentage}% Mastery

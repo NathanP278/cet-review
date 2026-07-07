@@ -187,7 +187,8 @@ export async function getDailyReviewQueue(limit?: number, offset: number = 0) {
       if (interleavedQueue.length >= reviewLimit) break;
       const group = groupedCards.get(key);
       if (group && group.length > 0) {
-        interleavedQueue.push(group.shift());
+        const shifted = group.shift();
+        if (shifted) interleavedQueue.push(shifted);
         added = true;
       }
     }

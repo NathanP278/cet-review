@@ -63,7 +63,7 @@ export default async function ExamHistoryPage() {
                         <span className="font-semibold">{modeLabel}</span>
                       </div>
                       <span className="text-sm text-[var(--muted)] flex items-center gap-4">
-                        <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {new Date(exam.created_at).toLocaleDateString()}</span>
+                        <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {new Date(exam.created_at || Date.now()).toLocaleDateString()}</span>
                         <span className="flex items-center gap-1"><Award className="h-3 w-3" /> {score} / {total} Questions</span>
                       </span>
                     </div>

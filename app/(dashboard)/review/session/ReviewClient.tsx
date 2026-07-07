@@ -119,6 +119,8 @@ export function ReviewClient({ initialCards }: { initialCards: any[] }) {
         )}
         <Flashcard
           key={currentCard.id}
+          cardId={currentCard.id}
+          questionId={question?.id || ""}
           frontContent={question?.question_text || "Missing Question"}
           backContent={question?.correct_answer || "Missing Answer"}
           explanation={question?.explanation}

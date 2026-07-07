@@ -29,7 +29,7 @@ export function generateInsights(
   let eveningTotal = 0;
 
   reviewHistory.forEach((r: Record<string, unknown>) => {
-    const hour = new Date(r.reviewed_at).getHours();
+    const hour = new Date(r.reviewed_at as string).getHours();
     const isCorrect = r.rating === "good" || r.rating === "easy";
     if (hour >= 5 && hour < 12) {
       morningTotal++;

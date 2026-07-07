@@ -46,7 +46,7 @@ export default function SettingsPage() {
     const updated = { ...profile, [key]: value };
     setProfile(updated);
     const supabase = createClient();
-    await supabase.from("profiles").update({ [key]: value }).eq("id", profile.id);
+    await supabase.from("profiles").update({ [key]: value } as any).eq("id", profile.id as string);
     setSaving(false);
   };
 
@@ -192,7 +192,7 @@ export default function SettingsPage() {
                 <input 
                   type="number" 
                   className="w-20 px-3 py-1 border border-[var(--border)] rounded bg-transparent"
-                  value={profile?.daily_review_limit || 50}
+                  value={(profile?.daily_review_limit as number) || 50}
                   onChange={(e) => updatePreference("daily_review_limit", parseInt(e.target.value))}
                 />
               </div>

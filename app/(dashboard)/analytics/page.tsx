@@ -137,7 +137,7 @@ export default async function AnalyticsPage() {
     });
   }
 
-  const forecastData = [];
+  const forecastData: { day: string; count: number }[] = [];
   for (let i = 0; i <= 7; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() + i);

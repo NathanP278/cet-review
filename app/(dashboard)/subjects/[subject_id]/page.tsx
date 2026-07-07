@@ -50,7 +50,7 @@ export default async function SubjectHubPage({
   let overallAccuracy = 0;
   if (user) {
     const { data: subjectMastery } = await supabase
-      .from("subject_mastery_view")
+      .from("subject_mastery_analytics_view")
       .select("mastery_percentage")
       .eq("user_id", user.id)
       .eq("subject_id", subject_id)

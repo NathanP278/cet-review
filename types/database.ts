@@ -783,7 +783,7 @@ export type Database = {
       }
     }
     Views: {
-      subject_mastery_view: {
+      subject_mastery_analytics_view: {
         Row: {
           avg_retention: number | null
           mastered_cards: number | null
@@ -815,6 +815,7 @@ export type Database = {
           mastered_cards: number | null
           mastery_percentage: number | null
           topic_id: string | null
+          subject_id: string | null
           total_cards: number | null
           user_id: string | null
         }
@@ -837,7 +838,38 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      get_scalable_random_questions: {
+        Args: {
+          p_topic_id?: string | null
+          p_subject_id?: string | null
+          p_category_id?: string | null
+          p_difficulty?: string | null
+          p_seed?: number
+          p_limit: number
+        }
+        Returns: {
+          id: string
+          content: string
+          choices: Json
+          explanation: string
+          type: string
+          difficulty: string
+          topic_id: string
+          subject_id: string
+        }[]
+      }
+      update_exam_state: {
+        Args: {
+          p_attempt_id: string
+          p_user_id: string
+          p_expected_version: number
+          p_new_answers: Json
+          p_new_flagged: Json
+          p_new_time_per_question: Json
+          p_remaining_seconds: number
+        }
+        Returns: number
+      }
     }
     Enums: {
       bookmark_entity_type:

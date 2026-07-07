@@ -19,7 +19,7 @@ export function ReviewHeatmap({ data, days = 90 }: ReviewHeatmapProps) {
       map.set(date, d.count);
     });
 
-    const grid = [];
+    const grid: { date: string; count: number }[] = [];
     let maxCount = 1;
 
     for (let i = days - 1; i >= 0; i--) {

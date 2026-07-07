@@ -156,8 +156,9 @@ export async function submitExam(attemptId: string) {
   orderedQuestions.forEach((q, idx) => {
     // Subject mapping
     let subjectName = "General";
-    if (q.topics && !Array.isArray(q.topics) && q.topics.subjects && !Array.isArray(q.topics.subjects)) {
-      subjectName = q.topics.subjects.name;
+    const t = q.topics as any;
+    if (t && !Array.isArray(t) && t.subjects && !Array.isArray(t.subjects)) {
+      subjectName = t.subjects.name;
     }
 
     if (!subjectMap[subjectName]) {
