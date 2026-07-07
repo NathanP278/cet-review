@@ -14,6 +14,8 @@ import { LearningJourney } from "@/components/domain/LearningJourney";
 import { RecentActivity, ActivityEvent } from "@/components/domain/RecentActivity";
 import { getUser } from "@/lib/auth";
 import { updateUserStreak } from "@/lib/streak";
+import { generateDailyBrief } from "@/app/actions/ai";
+import { Sparkles } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -48,7 +50,8 @@ export default async function DashboardPage() {
     { data: reviewHistoryData },
     { count: dueCount },
     { count: newCardsCount },
-    readinessMetrics
+    readinessMetrics,
+    aiBrief
   ] = await Promise.all([
     supabase.from("quiz_attempts").select("id, score, total, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
     supabase.from("mock_exam_attempts").select("id, score_data, created_at").eq("status", "completed").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
@@ -59,7 +62,8 @@ export default async function DashboardPage() {
     supabase.from("review_history").select("id, reviewed_at, response_time_seconds, grade").eq("user_id", user.id).gte("reviewed_at", oneYearAgoStr),
     supabase.from("user_cards").select("*", { count: "exact", head: true }).eq("user_id", user.id).in("state", ["relearning", "review"]).lte("next_review", nowStr),
     supabase.from("user_cards").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("state", "learning"),
-    calculateReadiness(user.id)
+    calculateReadiness(user.id),
+    generateDailyBrief()
   ]);
 
   const attempts = attemptsData || [];
@@ -163,6 +167,21 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-3 bg-[var(--surface)] px-4 py-2 rounded-lg border border-[var(--border)] shadow-sm">
           <Flame className="h-5 w-5 text-[var(--color-warning)]" />
           <span className="font-semibold">{streak} Day Streak</span>
+        </div>
+      </div>
+
+      <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 p-4 rounded-xl flex items-start gap-3 shadow-sm">
+        <div className="p-2 bg-purple-500/20 rounded-full mt-0.5 shadow-sm">
+          <Sparkles className="h-5 w-5 text-purple-700 dark:text-purple-300" />
+        </div>
+        <div>
+          <h3 className="font-bold text-purple-900 dark:text-purple-100 flex items-center gap-2">
+            AI Study Coach
+            <span className="bg-purple-500/20 text-purple-700 dark:text-purple-300 text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold">Beta</span>
+          </h3>
+          <p className="text-sm mt-1 text-purple-800 dark:text-purple-200 leading-relaxed font-medium">
+            {aiBrief}
+          </p>
         </div>
       </div>
 

@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { motion, useAnimation, PanInfo } from "framer-motion";
-import { Bookmark, Flag, FileText, Lightbulb } from "lucide-react";
+import { Bookmark, Flag, FileText, Lightbulb, Sparkles, Loader2 } from "lucide-react";
+import { explainQuestion } from "@/app/actions/ai";
 
 export interface FlashcardProps {
   cardId: string;
@@ -25,6 +26,8 @@ export function Flashcard({
 }: FlashcardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [aiExplanation, setAiExplanation] = useState<string | null>(null);
+  const [isAskingAi, setIsAskingAi] = useState(false);
   const [startTime] = useState(() => Date.now());
   const controls = useAnimation();
 
@@ -78,6 +81,21 @@ export function Flashcard({
     }
   };
 
+  const handleAskAI = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isAskingAi) return;
+    setIsAskingAi(true);
+    setAiExplanation(null);
+    try {
+      const explanation = await explainQuestion(frontContent, backContent);
+      setAiExplanation(explanation);
+    } catch (err) {
+      setAiExplanation("AI tutor is currently unavailable.");
+    } finally {
+      setIsAskingAi(false);
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -102,7 +120,11 @@ export function Flashcard({
       
       {/* Toolbar */}
       <div className="w-full flex items-center justify-end gap-2 mb-4">
-         <Button variant="ghost" size="sm" className="text-[var(--muted)] hover:text-[var(--foreground)]" onClick={() => setShowHint(true)} title="Show Hint (H)">
+         <Button variant="ghost" size="sm" className="text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 font-medium" onClick={handleAskAI} title="Ask AI">
+           {isAskingAi ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
+           Explain
+         </Button>
+         <Button variant="ghost" size="sm" className="text-[var(--muted)] hover:text-[var(--foreground)]" onClick={(e) => { e.stopPropagation(); setShowHint(true); }} title="Show Hint (H)">
            <Lightbulb className="w-4 h-4 mr-1" /> Hint
          </Button>
          <Button variant="ghost" size="sm" className="text-[var(--muted)] hover:text-[var(--foreground)]" title="Notes (N)">
@@ -170,6 +192,15 @@ export function Flashcard({
                  <div className="w-full text-left mt-6 p-4 bg-white dark:bg-black/20 rounded-xl border border-[var(--border)]">
                    <span className="text-xs font-bold text-[var(--muted)] uppercase tracking-wider block mb-2">Explanation</span>
                    <p className="text-sm md:text-base leading-relaxed text-[var(--foreground)]">{explanation}</p>
+                 </div>
+               )}
+
+               {aiExplanation && (
+                 <div className="w-full text-left mt-4 p-4 bg-purple-50 dark:bg-purple-900/10 rounded-xl border border-purple-200 dark:border-purple-800/30 animate-in fade-in slide-in-from-top-2 duration-300">
+                   <span className="text-xs font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider block mb-2 flex items-center gap-1">
+                     <Sparkles className="w-3 h-3" /> AI Tutor
+                   </span>
+                   <p className="text-sm md:text-base leading-relaxed text-purple-900 dark:text-purple-100 whitespace-pre-wrap">{aiExplanation}</p>
                  </div>
                )}
              </div>

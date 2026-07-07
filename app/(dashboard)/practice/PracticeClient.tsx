@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { explainQuestion } from "@/app/actions/ai";
 import { QuizQuestion } from "@/components/domain/QuizQuestion";
 import { QuizOptions, type Option } from "@/components/domain/QuizOptions";
 import { QuizResults } from "@/components/domain/QuizResults";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Loader2 } from "lucide-react";
 
 // In a real app, this would be heavily validated on the server.
 // For the MVP, we load questions and handle the logic on the client.
@@ -21,6 +22,9 @@ export function PracticeClient({ initialQuestions }: { initialQuestions: any[] }
   const [isRevealed, setIsRevealed] = useState(false);
   const [score, setScore] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [aiExplanation, setAiExplanation] = useState<string | null>(null);
+  const [isAskingAi, setIsAskingAi] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const loadQuestions = async () => {
@@ -57,6 +61,7 @@ export function PracticeClient({ initialQuestions }: { initialQuestions: any[] }
   };
 
   const handleNext = async () => {
+    setAiExplanation(null);
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((c) => c + 1);
       setSelectedOption(null);
@@ -121,6 +126,23 @@ export function PracticeClient({ initialQuestions }: { initialQuestions: any[] }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRevealed, selectedOption, currentIndex, questions.length]);
 
+  const handleAskAI = async () => {
+    if (isAskingAi) return;
+    setIsAskingAi(true);
+    setAiExplanation(null);
+    try {
+      const currentQuestion = questions[currentIndex];
+      const correctAnswerId = currentQuestion.answer;
+      const correctAnswerText = currentQuestion.choices[correctAnswerId];
+      const explanation = await explainQuestion(currentQuestion.content, correctAnswerText);
+      setAiExplanation(explanation);
+    } catch (err) {
+      setAiExplanation("AI tutor is currently unavailable.");
+    } finally {
+      setIsAskingAi(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -184,12 +206,32 @@ export function PracticeClient({ initialQuestions }: { initialQuestions: any[] }
         disabled={isRevealed}
       />
 
-      {isRevealed && currentQuestion.explanation && (
-        <div className="mt-4 p-4 rounded-lg bg-[var(--color-primary-light)]/10 border border-[var(--color-primary-light)]/20 animate-in fade-in duration-300">
-          <h4 className="font-semibold text-[var(--color-primary-dark)] dark:text-[var(--color-primary-light)] mb-1">
-            Explanation
-          </h4>
-          <p className="text-sm text-[var(--foreground)]">{currentQuestion.explanation}</p>
+      {isRevealed && (
+        <div className="mt-4 flex flex-col gap-4">
+          {currentQuestion.explanation && (
+            <div className="p-4 rounded-lg bg-[var(--color-primary-light)]/10 border border-[var(--color-primary-light)]/20 animate-in fade-in duration-300">
+              <h4 className="font-semibold text-[var(--color-primary-dark)] dark:text-[var(--color-primary-light)] mb-1">
+                Explanation
+              </h4>
+              <p className="text-sm text-[var(--foreground)]">{currentQuestion.explanation}</p>
+            </div>
+          )}
+
+          {!aiExplanation && (
+            <Button variant="outline" size="sm" onClick={handleAskAI} className="self-start text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-900/30 font-medium transition-all">
+              {isAskingAi ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+              Ask AI for a deeper explanation
+            </Button>
+          )}
+
+          {aiExplanation && (
+            <div className="p-4 bg-purple-50 dark:bg-purple-900/10 rounded-xl border border-purple-200 dark:border-purple-800/30 animate-in fade-in slide-in-from-top-2 duration-300">
+              <h4 className="text-xs font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider block mb-2 flex items-center gap-1">
+                <Sparkles className="w-3 h-3" /> AI Tutor
+              </h4>
+              <p className="text-sm md:text-base leading-relaxed text-purple-900 dark:text-purple-100 whitespace-pre-wrap">{aiExplanation}</p>
+            </div>
+          )}
         </div>
       )}
 

@@ -4,7 +4,8 @@ import { ExamResults } from "@/components/domain/ExamResults";
 import { submitExam } from "@/app/actions/exam";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowRight, History } from "lucide-react";
+import { ArrowRight, History, Sparkles } from "lucide-react";
+import { analyzeMockExam } from "@/app/actions/ai";
 
 export default async function ExamResultsPage(props: { params: Promise<{ attempt_id: string }> }) {
   const params = await props.params;
@@ -53,8 +54,28 @@ export default async function ExamResultsPage(props: { params: Promise<{ attempt
     );
   }
 
+  const aiDebrief = await analyzeMockExam(attemptId);
+
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8">
+      
+      <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 p-6 rounded-2xl flex flex-col gap-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-purple-500/20 rounded-full shadow-sm">
+            <Sparkles className="h-6 w-6 text-purple-700 dark:text-purple-300" />
+          </div>
+          <h3 className="text-lg font-bold text-purple-900 dark:text-purple-100 flex items-center gap-2">
+            AI Exam Debrief
+            <span className="bg-purple-500/20 text-purple-700 dark:text-purple-300 text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold">Coach</span>
+          </h3>
+        </div>
+        <div className="mt-2 text-sm md:text-base text-purple-900 dark:text-purple-100 leading-relaxed font-medium space-y-4">
+          {aiDebrief.split('\n\n').map((paragraph, idx) => (
+            <p key={idx}>{paragraph}</p>
+          ))}
+        </div>
+      </div>
+
       <ExamResults
         totalScore={scoreData.totalScore}
         totalQuestions={scoreData.totalQuestions}
