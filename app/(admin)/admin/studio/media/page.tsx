@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Youtube, FileText, Upload, Sparkles } from "lucide-react";
+import { PlaySquare, FileText, Upload, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { processYoutubeResource } from "@/app/actions/studio";
@@ -37,7 +37,7 @@ export default function StudioMediaPage() {
         <div className="bg-white dark:bg-slate-900 border border-red-100 dark:border-red-900/30 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg text-red-600 dark:text-red-500">
-              <Youtube className="h-6 w-6" />
+              <PlaySquare className="h-6 w-6" />
             </div>
             <div>
               <h3 className="font-bold text-slate-900 dark:text-white">YouTube Extractor</h3>

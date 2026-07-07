@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookOpen, FileText, Play, Youtube, Info, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, BookOpen, FileText, Play, PlaySquare, Info, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { NotesEditor } from "@/components/domain/NotesEditor";
 import { Card, CardContent } from "@/components/ui/card";
@@ -167,7 +167,7 @@ export default async function TopicPage({
           {videos.length > 0 && (
             <div className="flex flex-col gap-4">
               <h3 className="font-semibold text-lg flex items-center gap-2">
-                <Youtube className="h-5 w-5 text-red-500" />
+                <PlaySquare className="h-5 w-5 text-red-500" />
                 Video Lessons
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
