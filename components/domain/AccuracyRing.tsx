@@ -32,10 +32,20 @@ export function AccuracyRing({
         })}
       >
         <div className="flex flex-col items-center justify-center text-center">
-          <strong className="text-sm font-bold text-[var(--foreground)] leading-none">
+          <strong 
+            className="font-bold text-[var(--foreground)] leading-none"
+            style={{ fontSize: Math.max(14, size * 0.22) }}
+          >
             {Math.round(accuracy)}%
           </strong>
-          {size >= 80 && <span className="text-[10px] text-[var(--muted)] mt-1">{label}</span>}
+          {size >= 80 && (
+            <span 
+              className="text-[var(--muted)] mt-1"
+              style={{ fontSize: Math.max(10, size * 0.1) }}
+            >
+              {label}
+            </span>
+          )}
         </div>
       </CircularProgressbarWithChildren>
     </div>

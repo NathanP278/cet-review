@@ -19,8 +19,18 @@ export function ReviewHeatmap({ data, days = 90 }: ReviewHeatmapProps) {
       map.set(date, d.count);
     });
 
-    const grid: { date: string; count: number }[] = [];
+    const grid: { date: string; count: number; empty?: boolean }[] = [];
     let maxCount = 1;
+
+    // Calculate oldest date
+    const oldest = new Date(today);
+    oldest.setDate(oldest.getDate() - (days - 1));
+    const startDayOfWeek = oldest.getDay(); // 0 is Sunday
+
+    // Pad beginning to align days of week
+    for (let i = 0; i < startDayOfWeek; i++) {
+      grid.push({ date: `empty-start-${i}`, count: 0, empty: true });
+    }
 
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(today);
@@ -46,15 +56,15 @@ export function ReviewHeatmap({ data, days = 90 }: ReviewHeatmapProps) {
   return (
     <div className="w-full overflow-x-auto pb-2">
       <div className="flex flex-col gap-1 min-w-max">
-        <div className="flex gap-1">
+        <div className="grid grid-rows-7 grid-flow-col gap-1">
           {heatmapData.grid.map((cell) => (
             <div
               key={cell.date}
               className={cn(
                 "w-3 h-3 md:w-4 md:h-4 rounded-sm transition-colors",
-                getColorClass(cell.count, heatmapData.maxCount)
+                cell.empty ? "opacity-0" : getColorClass(cell.count, heatmapData.maxCount)
               )}
-              title={`${cell.date}: ${cell.count} reviews`}
+              title={cell.empty ? undefined : `${cell.date}: ${cell.count} reviews`}
             />
           ))}
         </div>

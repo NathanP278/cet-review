@@ -15,7 +15,9 @@ export default async function SubjectsPage() {
       id,
       name,
       description,
-      topics (count)
+      categories (
+        topics (count)
+      )
     `
     )
     .order("name");
@@ -52,7 +54,7 @@ export default async function SubjectsPage() {
               name={subject.name}
               description={subject.description || "No description available."}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              topicsCount={(subject.topics as any)?.[0]?.count || 0}
+              topicsCount={(subject.categories as any[])?.reduce((acc, cat) => acc + (cat.topics?.[0]?.count || 0), 0) || 0}
               accuracy={0}
             />
           ))}

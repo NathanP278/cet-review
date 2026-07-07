@@ -20,42 +20,41 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  // Fetch some basic stats for the dashboard (aggregated for MVP)
-  // In a full app, we would query the user_cards for due cards and quiz_attempts for accuracy
-  const { data: attemptsData } = await supabase
-    .from("quiz_attempts")
-    .select("score, total, created_at")
-    .eq("user_id", user.id);
+  const nowStr = new Date().toISOString();
+  const startOfDay = new Date(new Date().setHours(0,0,0,0)).toISOString();
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  const ninetyDaysStr = ninetyDaysAgo.toISOString();
 
-  const { data: mockExamsData } = await supabase
-    .from("mock_exam_attempts")
-    .select("id, score_data, created_at")
-    .eq("status", "completed")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+  // Run all independent queries in parallel to avoid massive rendering waterfalls
+  const [
+    { data: attemptsData },
+    { data: mockExamsData },
+    { count: reviewsCompletedToday },
+    { data: allCards },
+    { data: profile },
+    { data: topicMasteries },
+    { data: timeData },
+    { count: notesCount },
+    { data: historyData },
+    { count: dueCount },
+    readinessMetrics
+  ] = await Promise.all([
+    supabase.from("quiz_attempts").select("score, total, created_at").eq("user_id", user.id),
+    supabase.from("mock_exam_attempts").select("id, score_data, created_at").eq("status", "completed").eq("user_id", user.id).order("created_at", { ascending: false }),
+    supabase.from("review_history").select("*", { count: "exact", head: true }).eq("user_id", user.id).gte("reviewed_at", startOfDay),
+    supabase.from("user_cards").select("state, retention_score, lapse_count").eq("user_id", user.id),
+    supabase.from("profiles").select("streak, daily_review_limit").eq("id", user.id).single(),
+    supabase.from("topic_mastery_view").select("mastery_percentage").eq("user_id", user.id),
+    supabase.from("review_history").select("response_time_seconds").eq("user_id", user.id),
+    supabase.from("user_notes").select("*", { count: "exact", head: true }).eq("user_id", user.id),
+    supabase.from("review_history").select("reviewed_at").eq("user_id", user.id).gte("reviewed_at", ninetyDaysStr),
+    supabase.from("user_cards").select("*", { count: "exact", head: true }).eq("user_id", user.id).in("state", ["learning", "relearning", "review"]).lte("next_review", nowStr),
+    calculateReadiness(user.id)
+  ]);
 
   const attempts = attemptsData as { score: number; total: number; created_at: string }[] | null;
   const mockExams = mockExamsData as any[] | null;
-
-  // Remove unused totalScore/totalQuestions
-  if (attempts) {
-    attempts.forEach(() => {
-      // Logic would go here for displaying accuracy if needed
-    });
-  }
-
-  // Fetch Today's Reviews Completed
-  const { count: reviewsCompletedToday } = await supabase
-    .from("review_history")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .gte("reviewed_at", new Date(new Date().setHours(0,0,0,0)).toISOString());
-
-  // Fetch Memory Health Stats
-  const { data: allCards } = await supabase
-    .from("user_cards")
-    .select("state, retention_score, lapse_count")
-    .eq("user_id", user.id);
 
   let masteredCards = 0;
   let totalRetention = 0;
@@ -67,18 +66,6 @@ export default async function DashboardPage() {
     });
   }
   const avgRetention = allCards && allCards.length > 0 ? Math.round(totalRetention / allCards.length) : 0;
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("streak, daily_review_limit")
-    .eq("id", user.id)
-    .single();
-
-  // Fetch Topic Masteries for Learning Stats
-  const { data: topicMasteries } = await supabase
-    .from("topic_mastery_view")
-    .select("mastery_percentage")
-    .eq("user_id", user.id);
 
   let topicsStarted = 0;
   let topicsMastered = 0;
@@ -92,31 +79,11 @@ export default async function DashboardPage() {
     });
   }
 
-  // Fetch total study time
-  const { data: timeData } = await supabase
-    .from("review_history")
-    .select("response_time_seconds")
-    .eq("user_id", user.id);
-
   let totalStudyTimeSeconds = 0;
   if (timeData) {
     timeData.forEach(t => totalStudyTimeSeconds += t.response_time_seconds);
   }
   const progressStats = { started: topicsStarted, completed: topicsMastered, time: totalStudyTimeSeconds };
-
-  const { count: notesCount } = await supabase
-    .from("user_notes")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id);
-
-  // Fetch heatmap data (last 90 days)
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-  const { data: historyData } = await supabase
-    .from("review_history")
-    .select("reviewed_at")
-    .eq("user_id", user.id)
-    .gte("reviewed_at", ninetyDaysAgo.toISOString());
 
   const heatmapCounts = new Map<string, number>();
   if (historyData) {
@@ -127,25 +94,12 @@ export default async function DashboardPage() {
   }
   const heatmapArray = Array.from(heatmapCounts.entries()).map(([date, count]) => ({ date, count }));
 
-  // Fetch the count of flashcards due for review today
-  const now = new Date().toISOString();
-  const { count: dueCount } = await supabase
-    .from("user_cards")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .in("state", ["learning", "relearning", "review"])
-    .lte("next_review", now);
-
   const dailyLimit = profile?.daily_review_limit || 50;
   const streak = profile?.streak || 0;
   const cardsDueToday = dueCount || 0;
   const completedToday = reviewsCompletedToday || 0;
 
-  // Calculate CET Readiness using M20 Readiness Engine
-  const readinessMetrics = await calculateReadiness(user.id);
   const cetReadiness = readinessMetrics.overallScore;
-
-  // Generate Study Insights using M20 Insights Engine
   const insights = await generateStudyInsights(user.id, readinessMetrics);
 
   // Merge recent activity

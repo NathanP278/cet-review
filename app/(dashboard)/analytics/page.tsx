@@ -17,38 +17,15 @@ export default async function AnalyticsPage() {
     return null;
   }
 
-  // 1. Fetch Mock Exam Attempts for the chart
-  const { data: examAttempts } = await supabase
-    .from("mock_exam_attempts")
-    .select("created_at, score_data")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: true });
-
-  // Map to chart data format
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const chartData = (examAttempts || []).map((attempt: any) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const scoreData = attempt.score_data as any;
-    const accuracy =
-      scoreData.totalQuestions > 0
-        ? Math.round((scoreData.totalScore / scoreData.totalQuestions) * 100)
-        : 0;
-
-    return {
-      date: new Date(attempt.created_at).toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-      }),
-      score: accuracy,
-    };
-  });
-
-  // 2. Weakest Topics Analysis
-  // Fetch user_cards with low ease_factor (struggling topics)
-  const { data: weakCards } = await supabase
-    .from("user_cards")
-    .select(
-      `
+  const [
+    { data: examAttempts },
+    { data: weakCards },
+    { data: reviewHistory },
+    { data: allUserCards },
+    readinessMetrics
+  ] = await Promise.all([
+    supabase.from("mock_exam_attempts").select("created_at, score_data").eq("user_id", user.id).order("created_at", { ascending: true }),
+    supabase.from("user_cards").select(`
       ease_factor,
       questions (
         topics (
@@ -58,12 +35,11 @@ export default async function AnalyticsPage() {
           )
         )
       )
-    `
-    )
-    .eq("user_id", user.id)
-    .lt("ease_factor", 2.3) // Anything below 2.3 is struggling (starts at 2.5)
-    .order("ease_factor", { ascending: true })
-    .limit(50);
+    `).eq("user_id", user.id).lt("ease_factor", 2.3).order("ease_factor", { ascending: true }).limit(50),
+    supabase.from("review_history").select("time_spent_secs, reviewed_at, rating").eq("user_id", user.id),
+    supabase.from("user_cards").select("next_review, retention_score").eq("user_id", user.id),
+    calculateReadiness(user.id)
+  ]);
 
   // Aggregate by topic to find the weakest ones
   const topicStruggleMap: Record<string, { subject: string; count: number; avgEase: number }> = {};
@@ -100,18 +76,24 @@ export default async function AnalyticsPage() {
     .sort((a, b) => b.struggleScore - a.struggleScore) // Sort by most struggles
     .slice(0, 5); // Top 5 weakest
 
-  // 3. Intelligent Insights & Memory Forecast
-  const { data: reviewHistory } = await supabase
-    .from("review_history")
-    .select("time_spent_secs, reviewed_at, rating")
-    .eq("user_id", user.id);
+  // Map to chart data format
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const chartData = (examAttempts || []).map((attempt: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const scoreData = attempt.score_data as any;
+    const accuracy =
+      scoreData.totalQuestions > 0
+        ? Math.round((scoreData.totalScore / scoreData.totalQuestions) * 100)
+        : 0;
 
-  const { data: allUserCards } = await supabase
-    .from("user_cards")
-    .select("next_review, retention_score")
-    .eq("user_id", user.id);
-
-  const readinessMetrics = await calculateReadiness(user.id);
+    return {
+      date: new Date(attempt.created_at).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+      }),
+      score: accuracy,
+    };
+  });
   const insights = await generateStudyInsights(user.id, readinessMetrics);
   const momentum = readinessMetrics.trend === "improving" ? "Improving" : readinessMetrics.trend === "declining" ? "Declining" : "Stable";
 
