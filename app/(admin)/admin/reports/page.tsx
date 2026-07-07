@@ -50,7 +50,7 @@ export default async function AdminReportsPage() {
                 
                 <div className="text-xs font-mono text-slate-400 flex items-center gap-1">
                   <Clock className="h-3 w-3" />
-                  {new Date(report.created_at).toLocaleString()}
+                  {new Date(report.created_at || Date.now()).toLocaleString()}
                 </div>
               </div>
               

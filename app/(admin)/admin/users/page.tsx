@@ -70,7 +70,7 @@ export default async function AdminUsersPage(props: { searchParams: Promise<{ q?
                     <div className="text-xs text-slate-500">{u.xp || 0} XP &bull; {u.streak || 0} Streak</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-slate-500">
-                    {new Date(u.created_at).toLocaleDateString()}
+                    {new Date(u.created_at || Date.now()).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="flex items-center justify-end gap-2">

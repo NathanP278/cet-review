@@ -35,6 +35,7 @@ export default async function AdminDashboardPage() {
   
   if (recentExams) {
     recentExams.forEach(exam => {
+      if (!exam.created_at) return;
       const day = new Date(exam.created_at).toLocaleDateString("en-US", { weekday: 'short' });
       if (trafficMap[day] !== undefined) {
         trafficMap[day] += 1;
