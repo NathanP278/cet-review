@@ -177,10 +177,10 @@ export default async function ReviewDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link href="/analytics" className="col-span-1">
+        <Link href="/dashboard" className="col-span-1">
           <Button variant="outline" className="w-full h-full flex flex-col items-center justify-center py-6 gap-3 group border-2">
             <BarChart3 className="w-8 h-8 text-[var(--muted)] group-hover:text-[var(--color-primary)] transition-colors" />
-            <span className="font-semibold text-lg">Statistics</span>
+            <span className="font-semibold text-lg">Dashboard Statistics</span>
           </Button>
         </Link>
         <Link href="/calendar" className="col-span-1">

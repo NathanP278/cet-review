@@ -2,15 +2,21 @@ import { createClient } from "@/lib/supabase/server";
 import { AccuracyRing } from "@/components/domain/AccuracyRing";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Flame, PlayCircle, TrendingUp, BookOpen, Clock, CalendarDays } from "lucide-react";
+import { Flame, BookOpen, TrendingUp, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ReviewHeatmap } from "@/components/domain/ReviewHeatmap";
 import { StudyInsightsList } from "@/components/domain/StudyInsightsList";
 import { calculateReadiness } from "@/lib/intelligence/readiness";
 import { generateStudyInsights } from "@/lib/intelligence/insights";
-
+import { StudyPlan } from "@/components/domain/StudyPlan";
+import { LearningJourney } from "@/components/domain/LearningJourney";
+import { RecentActivity, ActivityEvent } from "@/components/domain/RecentActivity";
 import { getUser } from "@/lib/auth";
+import { updateUserStreak } from "@/lib/streak";
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -20,11 +26,16 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
+  // Update streak if needed silently
+  await updateUserStreak(user.id);
+
   const nowStr = new Date().toISOString();
   const startOfDay = new Date(new Date().setHours(0,0,0,0)).toISOString();
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-  const ninetyDaysStr = ninetyDaysAgo.toISOString();
+  
+  // For heatmap, 365 days
+  const oneYearAgo = new Date();
+  oneYearAgo.setDate(oneYearAgo.getDate() - 365);
+  const oneYearAgoStr = oneYearAgo.toISOString();
 
   // Run all independent queries in parallel to avoid massive rendering waterfalls
   const [
@@ -34,27 +45,26 @@ export default async function DashboardPage() {
     { data: allCards },
     { data: profile },
     { data: topicMasteries },
-    { data: timeData },
-    { count: notesCount },
-    { data: historyData },
+    { data: reviewHistoryData },
     { count: dueCount },
+    { count: newCardsCount },
     readinessMetrics
   ] = await Promise.all([
-    supabase.from("quiz_attempts").select("score, total, created_at").eq("user_id", user.id),
-    supabase.from("mock_exam_attempts").select("id, score_data, created_at").eq("status", "completed").eq("user_id", user.id).order("created_at", { ascending: false }),
+    supabase.from("quiz_attempts").select("id, score, total, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
+    supabase.from("mock_exam_attempts").select("id, score_data, created_at").eq("status", "completed").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
     supabase.from("review_history").select("*", { count: "exact", head: true }).eq("user_id", user.id).gte("reviewed_at", startOfDay),
-    supabase.from("user_cards").select("state, retention_score, lapse_count").eq("user_id", user.id),
-    supabase.from("profiles").select("streak, daily_review_limit").eq("id", user.id).single(),
+    supabase.from("user_cards").select("state, retention_score").eq("user_id", user.id),
+    supabase.from("profiles").select("streak, daily_review_limit, settings").eq("id", user.id).single(),
     supabase.from("topic_mastery_view").select("mastery_percentage").eq("user_id", user.id),
-    supabase.from("review_history").select("response_time_seconds").eq("user_id", user.id),
-    supabase.from("user_notes").select("*", { count: "exact", head: true }).eq("user_id", user.id),
-    supabase.from("review_history").select("reviewed_at").eq("user_id", user.id).gte("reviewed_at", ninetyDaysStr),
-    supabase.from("user_cards").select("*", { count: "exact", head: true }).eq("user_id", user.id).in("state", ["learning", "relearning", "review"]).lte("next_review", nowStr),
+    supabase.from("review_history").select("id, reviewed_at, response_time_seconds, grade").eq("user_id", user.id).gte("reviewed_at", oneYearAgoStr),
+    supabase.from("user_cards").select("*", { count: "exact", head: true }).eq("user_id", user.id).in("state", ["relearning", "review"]).lte("next_review", nowStr),
+    supabase.from("user_cards").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("state", "learning"),
     calculateReadiness(user.id)
   ]);
 
-  const attempts = attemptsData as { score: number; total: number; created_at: string }[] | null;
-  const mockExams = mockExamsData as any[] | null;
+  const attempts = attemptsData || [];
+  const mockExams = mockExamsData || [];
+  const reviewHistory = reviewHistoryData || [];
 
   let masteredCards = 0;
   let totalRetention = 0;
@@ -65,7 +75,7 @@ export default async function DashboardPage() {
       totalRetention += card.retention_score;
     });
   }
-  const avgRetention = allCards && allCards.length > 0 ? Math.round(totalRetention / allCards.length) : 0;
+  const avgRetention = allCards && allCards.length > 0 ? Math.round((totalRetention / allCards.length) * 100) : 0;
 
   let topicsStarted = 0;
   let topicsMastered = 0;
@@ -79,47 +89,76 @@ export default async function DashboardPage() {
     });
   }
 
+  // Aggregate time and heatmap
   let totalStudyTimeSeconds = 0;
-  if (timeData) {
-    timeData.forEach(t => totalStudyTimeSeconds += t.response_time_seconds);
-  }
-  const progressStats = { started: topicsStarted, completed: topicsMastered, time: totalStudyTimeSeconds };
-
   const heatmapCounts = new Map<string, number>();
-  if (historyData) {
-    historyData.forEach(r => {
-      const date = new Date(r.reviewed_at).toISOString().split('T')[0];
-      heatmapCounts.set(date, (heatmapCounts.get(date) || 0) + 1);
-    });
-  }
+  
+  reviewHistory.forEach(r => {
+    totalStudyTimeSeconds += r.response_time_seconds || 0;
+    const date = new Date(r.reviewed_at).toISOString().split('T')[0];
+    heatmapCounts.set(date, (heatmapCounts.get(date) || 0) + 1);
+  });
+
   const heatmapArray = Array.from(heatmapCounts.entries()).map(([date, count]) => ({ date, count }));
 
   const dailyLimit = profile?.daily_review_limit || 50;
   const streak = profile?.streak || 0;
   const cardsDueToday = dueCount || 0;
+  const newCards = newCardsCount || 0;
   const completedToday = reviewsCompletedToday || 0;
 
   const cetReadiness = readinessMetrics.overallScore;
   const insights = await generateStudyInsights(user.id, readinessMetrics);
 
   // Merge recent activity
-  const recentActivity: { type: string; id?: string; score: number; total: number; date: number }[] = [];
-  if (attempts) {
-    attempts.forEach((a: any) => recentActivity.push({ type: 'quiz', score: a.score, total: a.total, date: new Date(a.created_at).getTime() }));
-  }
-  if (mockExams) {
-    mockExams.forEach((a: any) => recentActivity.push({ type: 'exam', id: a.id, score: a.score_data.totalScore, total: a.score_data.totalQuestions, date: new Date(a.created_at).getTime() }));
-  }
-  recentActivity.sort((a, b) => b.date - a.date);
+  const recentEvents: ActivityEvent[] = [];
+  
+  attempts.forEach((a: any) => {
+    const scorePct = a.total > 0 ? Math.round((a.score / a.total) * 100) : 0;
+    recentEvents.push({
+      id: `quiz-${a.id}`,
+      type: 'quiz',
+      title: 'Practice Quiz',
+      description: `${a.score} / ${a.total} correct`,
+      timestamp: a.created_at,
+      score: scorePct
+    });
+  });
+
+  mockExams.forEach((a: any) => {
+    const scorePct = a.score_data?.totalQuestions > 0 ? Math.round((a.score_data.totalScore / a.score_data.totalQuestions) * 100) : 0;
+    recentEvents.push({
+      id: `exam-${a.id}`,
+      type: 'exam',
+      title: 'Mock Exam',
+      description: `${a.score_data?.totalScore || 0} / ${a.score_data?.totalQuestions || 0} correct`,
+      timestamp: a.created_at,
+      score: scorePct
+    });
+  });
+
+  // Take the last few review sessions (grouping individual reviews if possible, but let's just show raw reviews if needed, or skip reviews if it floods the feed)
+  // For the MVP feed, we'll only show the latest 5 reviews as distinct events to not overwhelm.
+  reviewHistory.slice(-5).forEach((r) => {
+    recentEvents.push({
+      id: `rev-${r.id}`,
+      type: 'review',
+      title: 'Flashcard Review',
+      description: r.grade >= 3 ? 'Recalled successfully' : 'Forgot card',
+      timestamp: r.reviewed_at
+    });
+  });
+
+  recentEvents.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
-    <div className="flex flex-col gap-8 max-w-5xl mx-auto">
+    <div className="flex flex-col gap-8 max-w-[1200px] mx-auto pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold font-display text-[var(--foreground)]">
-            Welcome back, {user.email?.split("@")[0]}!
+            Command Center
           </h1>
-          <p className="text-[var(--muted)] mt-1">Here is your daily study overview.</p>
+          <p className="text-[var(--muted)] mt-1">Your comprehensive view of CET exam readiness and study progress.</p>
         </div>
         <div className="flex items-center gap-3 bg-[var(--surface)] px-4 py-2 rounded-lg border border-[var(--border)] shadow-sm">
           <Flame className="h-5 w-5 text-[var(--color-warning)]" />
@@ -128,7 +167,36 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="col-span-1 border-t-4 border-t-[var(--color-primary)]">
+        
+        {/* CET Readiness */}
+        <Card className="col-span-1 border-t-4 border-t-[var(--color-primary)] shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle>CET Readiness</CardTitle>
+            <CardDescription>
+              {readinessMetrics.confidenceScore < 30 ? "Need more data" : readinessMetrics.trend === "improving" ? "Trending Upward" : "Based on AI Model"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center py-6 gap-4">
+            <AccuracyRing accuracy={cetReadiness} size={140} label="Readiness" />
+            <div className="flex flex-col items-center gap-1 text-sm text-[var(--muted)]">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-[var(--color-secondary)]" />
+                <span>{mockExams.length} Exams Taken</span>
+              </div>
+              {readinessMetrics.estimatedExamDayScore > 0 && (
+                <span className="text-xs">Est. Exam Day Score: <strong className="text-[var(--foreground)]">{readinessMetrics.estimatedExamDayScore}%</strong></span>
+              )}
+            </div>
+            {(!mockExams || mockExams.length === 0) && (
+              <Link href="/exam">
+                <Button variant="outline" size="sm" className="mt-2 text-xs h-8">Take a Mock Exam</Button>
+              </Link>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Memory Health */}
+        <Card className="col-span-1 border-t-4 border-t-[var(--color-secondary)] shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle>Memory Health</CardTitle>
             <CardDescription>Based on SM-2 Spaced Repetition</CardDescription>
@@ -151,84 +219,16 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="col-span-1 border-t-4 border-t-[var(--color-secondary)]">
-          <CardHeader className="pb-2">
-            <CardTitle>CET Readiness</CardTitle>
-            <CardDescription>
-              {readinessMetrics.confidenceScore < 30 ? "Need more data" : readinessMetrics.trend === "improving" ? "Trending Upward" : "Based on AI Model"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center py-6 gap-4">
-            <AccuracyRing accuracy={cetReadiness} size={140} label="Readiness" />
-            <div className="flex flex-col items-center gap-1 text-sm text-[var(--muted)]">
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-[var(--color-secondary)]" />
-                <span>{mockExams?.length || 0} Exams Taken</span>
-              </div>
-              {readinessMetrics.estimatedExamDayScore > 0 && (
-                <span className="text-xs">Est. Exam Day Score: <strong>{readinessMetrics.estimatedExamDayScore}%</strong></span>
-              )}
-            </div>
-            {(!mockExams || mockExams.length === 0) && (
-              <Link href="/exam">
-                <Button variant="outline" size="sm" className="mt-2 text-xs h-8">Take a Mock Exam</Button>
-              </Link>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="col-span-1 md:col-span-1">
-          <CardHeader>
-            <CardTitle>Today&apos;s Goal</CardTitle>
-            <CardDescription>
-              {completedToday} / {dailyLimit} reviews completed
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-6">
-            <div className="h-2 w-full bg-[var(--color-slate-100)] dark:bg-[var(--color-slate-800)] rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-[var(--color-primary)] transition-all duration-500"
-                style={{ width: `${Math.min(100, (completedToday / dailyLimit) * 100)}%` }}
-              />
-            </div>
-            
-            <div className="flex items-start gap-4 p-4 rounded-lg bg-[var(--color-slate-100)] dark:bg-[var(--color-slate-800)]/50 border border-[var(--border)]">
-              <div className="p-3 bg-[var(--color-primary)] rounded-full text-white shrink-0">
-                <Clock className="h-6 w-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg">Daily Review Due</h3>
-                <p className="text-sm text-[var(--muted)] mb-3">
-                  You have <strong className="text-[var(--foreground)]">{cardsDueToday}</strong>{" "}
-                  cards pending in your queue.
-                </p>
-                <Link href="/review">
-                  <Button className="gap-2 w-full sm:w-auto">
-                    <PlayCircle className="h-4 w-4" />
-                    Start Review Session
-                  </Button>
-                </Link>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4 p-4 rounded-lg bg-transparent border border-[var(--border)]">
-              <div className="p-3 bg-[var(--color-slate-200)] dark:bg-[var(--color-slate-800)] rounded-full text-[var(--muted)] shrink-0">
-                <BookOpen className="h-6 w-6" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg">Explore New Topics</h3>
-                <p className="text-sm text-[var(--muted)] mb-3">
-                  Ready for more? Dive into new subjects to expand your knowledge base.
-                </p>
-                <Link href="/subjects">
-                  <Button variant="outline" className="w-full sm:w-auto">
-                    Browse Subjects
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Today's Study Plan */}
+        <div className="col-span-1">
+          <StudyPlan 
+            dueReviews={cardsDueToday}
+            newCards={newCards}
+            completedReviews={completedToday}
+            dailyReviewLimit={dailyLimit}
+            avgTimePerCardSecs={15}
+          />
+        </div>
       </div>
 
       {/* M20 Study Insights Engine */}
@@ -236,93 +236,31 @@ export default async function DashboardPage() {
         <StudyInsightsList insights={insights} />
       </div>
 
-      {/* Learning Journey Stats */}
-      <div>
-        <h2 className="text-xl font-bold font-display mb-4">Learning Journey</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4 flex flex-col gap-1">
-              <span className="text-sm font-medium text-[var(--muted)] uppercase tracking-wider">Topics Started</span>
-              <span className="text-2xl font-bold text-[var(--foreground)]">{progressStats.started}</span>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex flex-col gap-1">
-              <span className="text-sm font-medium text-[var(--muted)] uppercase tracking-wider">Topics Mastered</span>
-              <span className="text-2xl font-bold text-[var(--foreground)]">{progressStats.completed}</span>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex flex-col gap-1">
-              <span className="text-sm font-medium text-[var(--muted)] uppercase tracking-wider">Notes Written</span>
-              <span className="text-2xl font-bold text-[var(--foreground)]">{notesCount}</span>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex flex-col gap-1">
-              <span className="text-sm font-medium text-[var(--muted)] uppercase tracking-wider">Study Time</span>
-              <span className="text-2xl font-bold text-[var(--foreground)]">
-                {Math.round(progressStats.time / 60)} mins
-              </span>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <LearningJourney 
+          topicsStarted={topicsStarted}
+          topicsMastered={topicsMastered}
+          totalTopics={topicMasteries?.length || 0}
+          studyTimeSeconds={totalStudyTimeSeconds}
+          cardsMastered={masteredCards}
+          mockExamsCompleted={mockExams.length}
+        />
+        
+        <RecentActivity events={recentEvents} />
       </div>
 
       <div>
         <div className="flex items-center gap-2 mb-4">
           <CalendarDays className="w-6 h-6 text-[var(--color-primary)]" />
-          <h2 className="text-xl font-bold font-display">Review Heatmap</h2>
+          <h2 className="text-xl font-bold font-display">Study Activity Heatmap</h2>
         </div>
-        <Card>
+        <Card className="shadow-sm">
           <CardContent className="p-6">
-            <ReviewHeatmap data={heatmapArray} days={90} />
+            <ReviewHeatmap data={heatmapArray} days={365} />
           </CardContent>
         </Card>
       </div>
 
-      <div>
-        <h2 className="text-xl font-bold font-display mb-4">Recent Activity</h2>
-        <Card>
-          <CardContent className="p-0">
-            {recentActivity.length > 0 ? (
-              <div className="divide-y divide-[var(--border)]">
-                {recentActivity
-                  .slice(0, 5)
-                  .map((attempt, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between p-4 hover:bg-[var(--color-slate-100)] dark:hover:bg-[var(--color-slate-800)]/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-2 h-2 rounded-full ${attempt.score / attempt.total >= 0.7 ? "bg-[var(--color-success)]" : "bg-[var(--color-warning)]"}`}
-                        />
-                        <span className="font-medium">
-                          {attempt.type === "exam" ? "Mock Exam" : "Practice Quiz"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <span className="text-sm font-semibold text-[var(--muted)]">
-                          {attempt.score} / {attempt.total}
-                        </span>
-                        {attempt.type === "exam" && attempt.id && (
-                          <Link href={`/exam/${attempt.id}/results`}>
-                            <Button variant="ghost" size="sm" className="h-8 px-2 text-xs">View</Button>
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            ) : (
-              <div className="p-8 text-center text-[var(--muted)]">
-                No activity yet. Complete a practice session to see it here!
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
