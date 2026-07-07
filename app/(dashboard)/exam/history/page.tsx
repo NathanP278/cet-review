@@ -51,7 +51,9 @@ export default async function ExamHistoryPage() {
                 if (config?.mode === "full") modeLabel = "Full CET Mock";
                 if (config?.mode === "subject") modeLabel = "Subject Focus";
                 if (config?.mode === "quick") modeLabel = "Quick Practice";
-                if (config?.mode === "custom") modeLabel = "Custom Mock";
+                if (config?.mode === "custom") {
+                  modeLabel = config?.questionCount === 50 ? "Diagnostic Exam" : "Custom Mock";
+                }
 
                 return (
                   <div key={exam.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[var(--surface-raised)] transition-colors">

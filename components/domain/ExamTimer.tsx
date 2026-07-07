@@ -46,14 +46,17 @@ export function ExamTimer({ initialSeconds, onExpire, onTick, className }: ExamT
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  const isWarning = timeLeft <= 300; // 5 minutes left warning
+  const isWarning = timeLeft <= 600 && timeLeft > 60; // 10 minutes left warning
+  const isCritical = timeLeft <= 60; // 1 minute left warning
 
   return (
     <div
       className={cn(
         "flex items-center gap-2 px-3 py-1.5 rounded-md font-mono text-lg font-bold border transition-colors",
-        isWarning
-          ? "bg-[var(--color-danger-light)]/20 text-[var(--color-danger)] border-[var(--color-danger)] animate-pulse"
+        isCritical
+          ? "bg-red-500/10 text-red-500 border-red-500 animate-pulse"
+          : isWarning
+          ? "bg-[var(--color-warning)]/10 text-[var(--color-warning)] border-[var(--color-warning)]"
           : "bg-[var(--surface)] border-[var(--border)]",
         className
       )}

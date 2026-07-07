@@ -15,10 +15,20 @@ export interface SubjectScore {
   total: number;
 }
 
+export interface TopicScore {
+  name: string;
+  subject: string;
+  score: number;
+  total: number;
+}
+
 export interface ExamResultsProps {
   totalScore: number;
   totalQuestions: number;
   subjectScores: SubjectScore[];
+  topicScores?: TopicScore[];
+  estimatedReadiness?: number;
+  timeSpentSeconds?: number;
   onRetry?: () => void;
 }
 
@@ -26,6 +36,9 @@ export function ExamResults({
   totalScore,
   totalQuestions,
   subjectScores,
+  topicScores,
+  estimatedReadiness,
+  timeSpentSeconds,
   onRetry,
 }: ExamResultsProps) {
   const overallAccuracy = Math.round((totalScore / totalQuestions) * 100) || 0;
@@ -61,6 +74,14 @@ export function ExamResults({
         <CardContent className="flex flex-col gap-8 p-6 sm:p-10">
           <div className="flex flex-col md:flex-row items-center justify-center gap-10">
             <AccuracyRing accuracy={overallAccuracy} size={160} label="Overall Score" />
+            
+            {estimatedReadiness !== undefined && (
+              <div className="flex flex-col items-center justify-center relative">
+                <AccuracyRing accuracy={estimatedReadiness} size={160} label="CET Readiness" />
+                <span className="absolute bottom-6 text-xs text-[var(--muted)] px-4 text-center">Estimated Percentile</span>
+              </div>
+            )}
+
             <div className="flex flex-col gap-2 text-center md:text-left">
               <h3 className="text-2xl font-bold">
                 {totalScore}{" "}
@@ -115,13 +136,65 @@ export function ExamResults({
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row justify-end gap-4 mt-4">
-            {onRetry && (
-              <Button variant="outline" onClick={onRetry} className="w-full sm:w-auto gap-2">
+          {topicScores && topicScores.length > 0 && (
+            <>
+              <div className="w-full h-px bg-[var(--border)]" />
+              <div>
+                <h4 className="flex items-center gap-2 font-semibold text-lg mb-4">
+                  <BarChart3 className="h-5 w-5 text-purple-500" />
+                  Topic Performance Breakdown
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {topicScores.sort((a, b) => (a.score / a.total) - (b.score / b.total)).map((topic, idx) => {
+                    const subAccuracy = Math.round((topic.score / topic.total) * 100) || 0;
+                    return (
+                      <div
+                        key={idx}
+                        className="flex flex-col p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium truncate pr-2" title={topic.name}>{topic.name}</span>
+                          <span className="font-bold whitespace-nowrap">{topic.score} / {topic.total}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-[var(--muted)]">{topic.subject}</span>
+                          <span
+                            className={cn(
+                              "font-bold",
+                              subAccuracy >= 80
+                                ? "text-green-500"
+                                : subAccuracy >= 50
+                                  ? "text-[var(--color-warning)]"
+                                  : "text-red-500"
+                            )}
+                          >
+                            {subAccuracy}%
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          {timeSpentSeconds !== undefined && (
+            <div className="flex justify-end pt-4 text-sm text-[var(--muted)]">
+              Time spent: {Math.floor(timeSpentSeconds / 60)}m {timeSpentSeconds % 60}s
+            </div>
+          )}
+
+          {onRetry && (
+            <div className="flex justify-center mt-6">
+              <Button onClick={onRetry} variant="outline" className="gap-2">
                 <RotateCcw className="h-4 w-4" />
-                Take Another
+                Try Another Exam
               </Button>
-            )}
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row justify-end gap-4 mt-4">
             <Link href="/dashboard" className="w-full sm:w-auto">
               <Button className="w-full gap-2">
                 Back to Dashboard

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Library, BookOpen, BrainCircuit, Target, Settings } from "lucide-react";
+import { LayoutDashboard, Library, BookOpen, BrainCircuit, Target, Settings, PenTool } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [

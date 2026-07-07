@@ -101,6 +101,19 @@ export function ExamConfigForm({ subjects }: { subjects: Subject[] }) {
         </Card>
 
         <Card 
+          className={cn("cursor-pointer transition-all border-2", mode === "custom" ? "border-purple-500 bg-purple-500/10" : "border-transparent hover:border-[var(--border)]")}
+          onClick={() => { setMode("custom"); setQuestionCount(50); setTimeLimitMinutes(60); }}
+        >
+          <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+            <div className="p-3 bg-purple-500/10 text-purple-500 rounded-full">
+              <Settings className="h-6 w-6" />
+            </div>
+            <h3 className="font-semibold">Diagnostic Exam</h3>
+            <p className="text-xs text-[var(--muted)]">Adaptive • Strengths & Weaknesses</p>
+          </CardContent>
+        </Card>
+
+        <Card 
           className={cn("cursor-pointer transition-all border-2", mode === "custom" ? "border-[var(--color-neutral)] bg-[var(--color-neutral-light)]/10" : "border-transparent hover:border-[var(--border)]")}
           onClick={() => { setMode("custom"); setQuestionCount(20); setTimeLimitMinutes(20); }}
         >
