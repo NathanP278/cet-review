@@ -286,17 +286,17 @@ async function fetchMemoryStatistics(
 async function fetchCETReadiness(userId: string): Promise<CETReadiness> {
   const metrics = await calculateReadiness(userId);
 
-  // Map trend to match our type
-  const trend = metrics.trend === 'stagnant' ? 'stable' : metrics.trend as 'improving' | 'declining';
-
   return {
     overallScore: metrics.overallScore,
     confidenceScore: metrics.confidenceScore,
-    trend,
+    confidenceLevel: metrics.confidenceLevel,
+    isCalibrated: metrics.isCalibrated,
+    trend: metrics.trend,
     estimatedExamDayScore: metrics.estimatedExamDayScore,
-    mockExamsTaken: 0, // Will be calculated in future sprint
-    weakSubjects: [], // Will be calculated in future sprint
-    strongSubjects: [], // Will be calculated in future sprint
+    mockExamsTaken: metrics.rawMetrics.mockExamsTaken,
+    weakSubjects: [], // Will be calculated in F2.2.5 (Readiness Insights)
+    strongSubjects: [], // Will be calculated in F2.2.5 (Readiness Insights)
+    breakdown: metrics.breakdown,
   };
 }
 
@@ -666,6 +666,8 @@ function getDefaultCETReadiness(): CETReadiness {
   return {
     overallScore: 0,
     confidenceScore: 0,
+    confidenceLevel: "Insufficient Data",
+    isCalibrated: false,
     trend: "unknown",
     estimatedExamDayScore: 0,
     mockExamsTaken: 0,

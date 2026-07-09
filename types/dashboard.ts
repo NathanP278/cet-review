@@ -58,6 +58,8 @@ export interface MemoryStatistics {
 export interface CETReadiness {
   overallScore: number;
   confidenceScore: number;
+  confidenceLevel: 'High' | 'Medium' | 'Low' | 'Insufficient Data';
+  isCalibrated: boolean;
   trend: 'improving' | 'stable' | 'declining' | 'unknown';
   estimatedExamDayScore: number;
   mockExamsTaken: number;
@@ -65,6 +67,17 @@ export interface CETReadiness {
   lastMockExamDate?: string;
   weakSubjects: string[];
   strongSubjects: string[];
+  breakdown?: {
+    mockExams: number;
+    subjectMastery: number;
+    memoryRetention: number;
+    practiceQuizzes: number;
+    consistency: number;
+    reviewCompletion: number;
+    learningVelocity: number;
+    studyTime: number;
+    confidence: number;
+  };
 }
 
 // =============================================================================
