@@ -78,6 +78,11 @@ export interface CETReadiness {
     studyTime: number;
     confidence: number;
   };
+  rawMetrics?: {
+    mockExamsTaken: number;
+    totalQuestionsAnswered: number;
+    daysActive: number;
+  };
 }
 
 // =============================================================================

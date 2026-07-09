@@ -297,6 +297,7 @@ async function fetchCETReadiness(userId: string): Promise<CETReadiness> {
     weakSubjects: [], // Will be calculated in F2.2.5 (Readiness Insights)
     strongSubjects: [], // Will be calculated in F2.2.5 (Readiness Insights)
     breakdown: metrics.breakdown,
+    rawMetrics: metrics.rawMetrics,
   };
 }
 
@@ -673,6 +674,11 @@ function getDefaultCETReadiness(): CETReadiness {
     mockExamsTaken: 0,
     weakSubjects: [],
     strongSubjects: [],
+    rawMetrics: {
+      mockExamsTaken: 0,
+      totalQuestionsAnswered: 0,
+      daysActive: 0,
+    },
   };
 }
 
