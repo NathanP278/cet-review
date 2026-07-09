@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { AccuracyRing } from "@/components/domain/AccuracyRing";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Flame, BookOpen, TrendingUp, CalendarDays } from "lucide-react";
+import { BookOpen, TrendingUp, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ReviewHeatmap } from "@/components/domain/ReviewHeatmap";
@@ -15,7 +14,12 @@ import { RecentActivity, ActivityEvent } from "@/components/domain/RecentActivit
 import { getUser } from "@/lib/auth";
 import { updateUserStreak } from "@/lib/streak";
 import { generateDailyBrief } from "@/app/actions/ai";
-import { Sparkles } from "lucide-react";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { DashboardCard } from "@/components/dashboard/DashboardCard";
+import { DashboardGrid, DashboardSection } from "@/components/dashboard/DashboardGrid";
+import { AICoachCard } from "@/components/dashboard/AICoachCard";
+import { NoMockExamsEmpty, NoCardsEmpty } from "@/components/dashboard/DashboardEmpty";
+import { Card, CardContent } from "@/components/ui/card";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -141,8 +145,7 @@ export default async function DashboardPage() {
     });
   });
 
-  // Take the last few review sessions (grouping individual reviews if possible, but let's just show raw reviews if needed, or skip reviews if it floods the feed)
-  // For the MVP feed, we'll only show the latest 5 reviews as distinct events to not overwhelm.
+  // Take the last few review sessions
   reviewHistory.slice(-5).forEach((r) => {
     recentEvents.push({
       id: `rev-${r.id}`,
@@ -156,46 +159,30 @@ export default async function DashboardPage() {
   recentEvents.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
-    <div className="flex flex-col gap-8 max-w-[1200px] mx-auto pb-12">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold font-display text-[var(--foreground)]">
-            Command Center
-          </h1>
-          <p className="text-[var(--muted)] mt-1">Your comprehensive view of CET exam readiness and study progress.</p>
-        </div>
-        <div className="flex items-center gap-3 bg-[var(--surface)] px-4 py-2 rounded-lg border border-[var(--border)] shadow-sm">
-          <Flame className="h-5 w-5 text-[var(--color-warning)]" />
-          <span className="font-semibold">{streak} Day Streak</span>
-        </div>
-      </div>
+    <div className="flex flex-col gap-6 md:gap-8 max-w-[1400px] mx-auto pb-12 px-4 md:px-6">
+      {/* Header */}
+      <DashboardHeader streak={streak} />
 
-      <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 p-4 rounded-xl flex items-start gap-3 shadow-sm">
-        <div className="p-2 bg-purple-500/20 rounded-full mt-0.5 shadow-sm">
-          <Sparkles className="h-5 w-5 text-purple-700 dark:text-purple-300" />
-        </div>
-        <div>
-          <h3 className="font-bold text-purple-900 dark:text-purple-100 flex items-center gap-2">
-            AI Study Coach
-            <span className="bg-purple-500/20 text-purple-700 dark:text-purple-300 text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold">Beta</span>
-          </h3>
-          <p className="text-sm mt-1 text-purple-800 dark:text-purple-200 leading-relaxed font-medium">
-            {aiBrief}
-          </p>
-        </div>
-      </div>
+      {/* AI Coach */}
+      <AICoachCard message={aiBrief} />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
+      {/* Core Metrics Grid */}
+      <DashboardGrid columns={3}>
         {/* CET Readiness */}
-        <Card className="col-span-1 border-t-4 border-t-[var(--color-primary)] shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle>CET Readiness</CardTitle>
-            <CardDescription>
-              {readinessMetrics.confidenceScore < 30 ? "Need more data" : readinessMetrics.trend === "improving" ? "Trending Upward" : "Based on AI Model"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center py-6 gap-4">
+        <DashboardCard
+          title="CET Readiness"
+          description={
+            readinessMetrics.confidenceScore < 30 
+              ? "Need more data" 
+              : readinessMetrics.trend === "improving" 
+                ? "Trending Upward" 
+                : "Based on AI Model"
+          }
+          accent="primary"
+          isEmpty={!mockExams || mockExams.length === 0}
+          emptyState={<NoMockExamsEmpty />}
+        >
+          <div className="flex flex-col items-center justify-center py-6 gap-4">
             <AccuracyRing accuracy={cetReadiness} size={140} label="Readiness" />
             <div className="flex flex-col items-center gap-1 text-sm text-[var(--muted)]">
               <div className="flex items-center gap-2">
@@ -203,24 +190,23 @@ export default async function DashboardPage() {
                 <span>{mockExams.length} Exams Taken</span>
               </div>
               {readinessMetrics.estimatedExamDayScore > 0 && (
-                <span className="text-xs">Est. Exam Day Score: <strong className="text-[var(--foreground)]">{readinessMetrics.estimatedExamDayScore}%</strong></span>
+                <span className="text-xs">
+                  Est. Exam Day Score: <strong className="text-[var(--foreground)]">{readinessMetrics.estimatedExamDayScore}%</strong>
+                </span>
               )}
             </div>
-            {(!mockExams || mockExams.length === 0) && (
-              <Link href="/exam">
-                <Button variant="outline" size="sm" className="mt-2 text-xs h-8">Take a Mock Exam</Button>
-              </Link>
-            )}
-          </CardContent>
-        </Card>
+          </div>
+        </DashboardCard>
 
         {/* Memory Health */}
-        <Card className="col-span-1 border-t-4 border-t-[var(--color-secondary)] shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle>Memory Health</CardTitle>
-            <CardDescription>Based on SM-2 Spaced Repetition</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center py-6 gap-4">
+        <DashboardCard
+          title="Memory Health"
+          description="Based on SM-2 Spaced Repetition"
+          accent="secondary"
+          isEmpty={!allCards || allCards.length === 0}
+          emptyState={<NoCardsEmpty />}
+        >
+          <div className="flex flex-col items-center justify-center py-6 gap-4">
             {allCards && allCards.length > 0 ? (
               <>
                 <AccuracyRing accuracy={avgRetention} size={140} label="Retention" />
@@ -235,11 +221,11 @@ export default async function DashboardPage() {
                 <span className="text-sm text-[var(--muted)]">Not Enough Data Yet</span>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </DashboardCard>
 
         {/* Today's Study Plan */}
-        <div className="col-span-1">
+        <div>
           <StudyPlan 
             dueReviews={cardsDueToday}
             newCards={newCards}
@@ -248,14 +234,15 @@ export default async function DashboardPage() {
             avgTimePerCardSecs={15}
           />
         </div>
-      </div>
+      </DashboardGrid>
 
-      {/* M20 Study Insights Engine */}
-      <div className="w-full">
+      {/* Study Insights */}
+      <DashboardSection>
         <StudyInsightsList insights={insights} />
-      </div>
+      </DashboardSection>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Learning Progress */}
+      <DashboardGrid columns={2}>
         <LearningJourney 
           topicsStarted={topicsStarted}
           topicsMastered={topicsMastered}
@@ -266,20 +253,19 @@ export default async function DashboardPage() {
         />
         
         <RecentActivity events={recentEvents} />
-      </div>
+      </DashboardGrid>
 
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <CalendarDays className="w-6 h-6 text-[var(--color-primary)]" />
-          <h2 className="text-xl font-bold font-display">Study Activity Heatmap</h2>
-        </div>
-        <Card className="shadow-sm">
-          <CardContent className="p-6">
+      {/* Study Activity Heatmap */}
+      <DashboardSection
+        title="Study Activity Heatmap"
+        icon={<CalendarDays className="w-6 h-6" />}
+      >
+        <Card className="shadow-sm border-[var(--border)]">
+          <CardContent className="p-4 md:p-6">
             <ReviewHeatmap data={heatmapArray} days={365} />
           </CardContent>
         </Card>
-      </div>
-
+      </DashboardSection>
     </div>
   );
 }
