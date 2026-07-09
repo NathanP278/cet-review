@@ -43,7 +43,7 @@ export function ReadinessBreakdownCenter({ readiness }: ReadinessBreakdownCenter
       shortExplanation: 'Performance on full-length practice tests',
       fullExplanation: 'Mock exams simulate real test conditions and are the strongest predictor of actual exam performance. Taking multiple mock exams helps calibrate your readiness score.',
       calculationExplanation: 'Calculated from your mock exam scores, completion rate, and consistency across attempts.',
-      trend: 'improving',
+      trend: 'improving' as const,
     },
     {
       id: 'subjectMastery',
@@ -57,7 +57,7 @@ export function ReadinessBreakdownCenter({ readiness }: ReadinessBreakdownCenter
       shortExplanation: 'Understanding across all subjects',
       fullExplanation: 'Subject mastery measures how well you understand each topic across all subjects. Higher mastery indicates comprehensive knowledge coverage.',
       calculationExplanation: 'Average mastery percentage across all subjects weighted by their importance in the CET.',
-      trend: 'stable',
+      trend: 'stable' as const,
     },
     {
       id: 'memoryRetention',
@@ -71,7 +71,7 @@ export function ReadinessBreakdownCenter({ readiness }: ReadinessBreakdownCenter
       shortExplanation: 'How well you retain learned material',
       fullExplanation: 'Memory retention tracks your ability to recall information over time using the SM-2 spaced repetition algorithm.',
       calculationExplanation: 'Based on average ease factor and retention scores from your flashcard reviews.',
-      trend: 'improving',
+      trend: 'improving' as const,
     },
     {
       id: 'practiceQuizzes',
@@ -85,7 +85,7 @@ export function ReadinessBreakdownCenter({ readiness }: ReadinessBreakdownCenter
       shortExplanation: 'Performance on topic-specific quizzes',
       fullExplanation: 'Practice quizzes help identify strengths and weaknesses in specific topics before attempting full mock exams.',
       calculationExplanation: 'Average score across all completed practice quizzes, weighted by difficulty.',
-      trend: 'stable',
+      trend: 'stable' as const,
     },
     {
       id: 'consistency',
@@ -99,7 +99,7 @@ export function ReadinessBreakdownCenter({ readiness }: ReadinessBreakdownCenter
       shortExplanation: 'Regular study habits and activity',
       fullExplanation: 'Consistency measures how regularly you study. Maintaining consistent study habits leads to better long-term retention.',
       calculationExplanation: 'Based on study streaks, active days per month, and review completion rate.',
-      trend: 'declining',
+      trend: 'declining' as const,
     },
     {
       id: 'reviewCompletion',
@@ -113,7 +113,7 @@ export function ReadinessBreakdownCenter({ readiness }: ReadinessBreakdownCenter
       shortExplanation: 'Completion of daily review sessions',
       fullExplanation: 'Review completion tracks whether you complete your daily spaced repetition reviews on time.',
       calculationExplanation: 'Percentage of due cards reviewed on time over the past 30 days.',
-      trend: 'stable',
+      trend: 'stable' as const,
     },
     {
       id: 'learningVelocity',
@@ -127,7 +127,7 @@ export function ReadinessBreakdownCenter({ readiness }: ReadinessBreakdownCenter
       shortExplanation: 'Speed of learning new material',
       fullExplanation: 'Learning velocity measures how quickly you master new topics and cards.',
       calculationExplanation: 'Rate of new cards learned and topics completed per week.',
-      trend: 'improving',
+      trend: 'improving' as const,
     },
     {
       id: 'studyTime',
@@ -141,7 +141,7 @@ export function ReadinessBreakdownCenter({ readiness }: ReadinessBreakdownCenter
       shortExplanation: 'Total time spent studying',
       fullExplanation: 'Study time tracks the total hours you dedicate to review sessions, quizzes, and mock exams.',
       calculationExplanation: 'Cumulative study time across all activities.',
-      trend: 'stable',
+      trend: 'stable' as const,
     },
     {
       id: 'confidence',
@@ -155,7 +155,7 @@ export function ReadinessBreakdownCenter({ readiness }: ReadinessBreakdownCenter
       shortExplanation: 'Statistical confidence in prediction',
       fullExplanation: 'Confidence measures how reliable the readiness prediction is based on the amount and quality of data.',
       calculationExplanation: 'Based on sample size, calibration status, and data recency.',
-      trend: 'improving',
+      trend: 'improving' as const,
     },
   ];
 

@@ -2,9 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ArrowUpDown } from "lucide-react";
+import { Search } from "lucide-react";
 import { SubjectReadinessCard } from "./SubjectReadinessCard";
 import type { CETReadiness } from "@/types/dashboard";
 
@@ -21,21 +20,32 @@ export function SubjectReadinessCenter({ readiness }: SubjectReadinessCenterProp
 
   // Generate subject data from readiness
   const subjects = useMemo(() => {
-    if (!readiness.subjectReadiness) return [];
-
-    return Object.entries(readiness.subjectReadiness).map(([subjectName, score]) => ({
-      name: subjectName,
-      readiness: score,
-      mastery: Math.min(score + 5, 100), // Simplified
-      retention: Math.min(score + 3, 100), // Simplified
-      quizAccuracy: Math.min(score + 2, 100), // Simplified
-      questionsAnswered: Math.floor(Math.random() * 200) + 50, // Placeholder
-      cardsLearned: Math.floor(Math.random() * 100) + 20, // Placeholder
-      cardsDue: Math.floor(Math.random() * 30), // Placeholder
-      trend: score > 70 ? 'improving' : score > 40 ? 'stable' : 'declining' as const,
-      confidence: readiness.confidenceLevel,
-      improvementPotential: Math.max(0, 90 - score),
-    }));
+    // For now, generate sample subjects based on overall readiness
+    // In production, this would come from actual subject-level data
+    const sampleSubjects = ['Mathematics', 'English', 'Science', 'Reading Comprehension'];
+    const overallScore = readiness.overallScore;
+    
+    return sampleSubjects.map((subjectName) => {
+      const variance = (Math.random() - 0.5) * 20; // +/- 10%
+      const score = Math.max(0, Math.min(100, overallScore + variance));
+      
+      const trend: 'improving' | 'stable' | 'declining' = 
+        score > 70 ? 'improving' : score > 40 ? 'stable' : 'declining';
+      
+      return {
+        name: subjectName,
+        readiness: score,
+        mastery: Math.min(score + 5, 100),
+        retention: Math.min(score + 3, 100),
+        quizAccuracy: Math.min(score + 2, 100),
+        questionsAnswered: Math.floor(Math.random() * 200) + 50,
+        cardsLearned: Math.floor(Math.random() * 100) + 20,
+        cardsDue: Math.floor(Math.random() * 30),
+        trend,
+        confidence: readiness.confidenceLevel,
+        improvementPotential: Math.max(0, 90 - score),
+      };
+    });
   }, [readiness]);
 
   // Filter subjects
@@ -92,12 +102,12 @@ export function SubjectReadinessCenter({ readiness }: SubjectReadinessCenterProp
         {/* Search */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--muted)]" />
-          <Input
+          <input
             type="text"
             placeholder="Search subjects..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 px-3 py-2 rounded-md border border-[var(--border)] bg-[var(--background)] text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
           />
         </div>
 
