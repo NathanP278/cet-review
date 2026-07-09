@@ -13,8 +13,8 @@ export default async function LeaderboardPage() {
   // Fetch top 100 users for the MVP
   const { data: topProfiles } = await supabase
     .from("profiles")
-    .select("id, name, avatar_url, xp, level, active_title")
-    .order("xp", { ascending: false })
+    .select("id, total_points")
+    .order("total_points", { ascending: false })
     .limit(100);
 
   if (!topProfiles) return <div>Failed to load leaderboard.</div>;
@@ -43,7 +43,7 @@ export default async function LeaderboardPage() {
           {topProfiles.map((profile, index) => {
             const isCurrentUser = profile.id === user.id;
             const rank = index + 1;
-            const progression = getLevelProgress(profile.xp || 0);
+            const progression = getLevelProgress(profile.total_points || 0);
 
             let RankIcon = null;
             if (rank === 1) RankIcon = <Crown className="h-5 w-5 text-yellow-500 mx-auto" />;
@@ -62,15 +62,12 @@ export default async function LeaderboardPage() {
                 </div>
                 <div className="col-span-7 flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] flex items-center justify-center text-white font-bold shadow-sm">
-                    {profile.name?.charAt(0) || "U"}
+                    U
                   </div>
                   <div className="flex flex-col">
                     <span className={`font-semibold ${isCurrentUser ? "text-purple-700 dark:text-purple-400" : "text-[var(--foreground)]"}`}>
-                      {profile.name || "Anonymous Learner"} {isCurrentUser && "(You)"}
+                      Anonymous Learner {isCurrentUser && "(You)"}
                     </span>
-                    {profile.active_title && (
-                      <span className="text-xs text-[var(--muted)]">{profile.active_title}</span>
-                    )}
                   </div>
                 </div>
                 <div className="col-span-2 text-right">
@@ -80,7 +77,7 @@ export default async function LeaderboardPage() {
                   </div>
                 </div>
                 <div className="col-span-2 text-right font-mono font-medium text-[var(--foreground)]">
-                  {(profile.xp || 0).toLocaleString()}
+                  {(profile.total_points || 0).toLocaleString()}
                 </div>
               </div>
             );

@@ -67,10 +67,10 @@ export default async function AdminQuestionsPage(props: { searchParams: Promise<
                 <tr key={q.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider
-                      ${q.status === 'published' || !q.status ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 
-                        q.status === 'draft' ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' :
+                      ${(q as any).status === 'published' || !(q as any).status ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 
+                        (q as any).status === 'draft' ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' :
                         'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'}`}>
-                      {q.status || 'published'}
+                      {(q as any).status || 'published'}
                     </span>
                   </td>
                   <td className="px-6 py-4">

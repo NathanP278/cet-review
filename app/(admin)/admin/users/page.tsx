@@ -11,7 +11,7 @@ export default async function AdminUsersPage(props: { searchParams: Promise<{ q?
   let query = supabase.from("profiles").select("*").order("created_at", { ascending: false }).limit(50);
   
   if (q) {
-    query = query.ilike("name", `%${q}%`); // In a real app we'd search email via auth.users too, but this requires service role
+    // query = query.ilike("name", `%${q}%`); // name column does not exist on profiles
   }
 
   const { data: users } = await query;
@@ -57,17 +57,17 @@ export default async function AdminUsersPage(props: { searchParams: Promise<{ q?
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300">
-                        {u.name?.charAt(0) || "U"}
+                        U
                       </div>
                       <div>
-                        <div className="font-semibold text-slate-900 dark:text-slate-100">{u.name || "Anonymous User"}</div>
+                        <div className="font-semibold text-slate-900 dark:text-slate-100">Anonymous User</div>
                         <div className="text-xs text-slate-500 font-mono">{u.id.substring(0, 8)}...</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-slate-900 dark:text-slate-200">Level {u.level || 1}</div>
-                    <div className="text-xs text-slate-500">{u.xp || 0} XP &bull; {u.streak || 0} Streak</div>
+                    <div className="text-sm font-medium text-slate-900 dark:text-slate-200">Level 1</div>
+                    <div className="text-xs text-slate-500">{(u as any).total_points || 0} XP &bull; {(u as any).streak || 0} Streak</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-slate-500">
                     {new Date(u.created_at || Date.now()).toLocaleDateString()}

@@ -59,7 +59,7 @@ export default async function DashboardPage() {
     supabase.from("user_cards").select("state, retention_score").eq("user_id", user.id),
     supabase.from("profiles").select("streak, daily_review_limit, settings").eq("id", user.id).single(),
     supabase.from("topic_mastery_view").select("mastery_percentage").eq("user_id", user.id),
-    supabase.from("review_history").select("id, reviewed_at, response_time_seconds, grade").eq("user_id", user.id).gte("reviewed_at", oneYearAgoStr),
+    supabase.from("review_history").select("id, reviewed_at, response_time_seconds, rating").eq("user_id", user.id).gte("reviewed_at", oneYearAgoStr),
     supabase.from("user_cards").select("*", { count: "exact", head: true }).eq("user_id", user.id).in("state", ["relearning", "review"]).lte("next_review", nowStr),
     supabase.from("user_cards").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("state", "learning"),
     calculateReadiness(user.id),
@@ -148,7 +148,7 @@ export default async function DashboardPage() {
       id: `rev-${r.id}`,
       type: 'review',
       title: 'Flashcard Review',
-      description: r.grade >= 3 ? 'Recalled successfully' : 'Forgot card',
+      description: r.rating === 'good' || r.rating === 'easy' ? 'Recalled successfully' : 'Forgot card',
       timestamp: r.reviewed_at
     });
   });

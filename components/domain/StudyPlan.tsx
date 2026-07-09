@@ -98,17 +98,17 @@ export function StudyPlan({
         </div>
 
         <div className="mt-auto pt-4 flex gap-3">
-          <Button asChild className="flex-1 group">
-            <Link href="/review/session">
+          <Link href="/review/session" className="flex-1">
+            <Button className="w-full group">
               Start Session
               <ChevronRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </Button>
-          <Button asChild variant="outline" className="flex-1">
-            <Link href="/practice">
+            </Button>
+          </Link>
+          <Link href="/practice" className="flex-1">
+            <Button variant="outline" className="w-full">
               Practice Quiz
-            </Link>
-          </Button>
+            </Button>
+          </Link>
         </div>
 
       </CardContent>

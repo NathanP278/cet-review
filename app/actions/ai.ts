@@ -14,7 +14,7 @@ export async function generateDailyBrief() {
   // Gather context: user profile, recent reviews, overdue, mastery
   const { data: profile } = await supabase
     .from("profiles")
-    .select("first_name, streak")
+    .select("streak")
     .eq("id", user.id)
     .single();
 
@@ -44,7 +44,7 @@ export async function generateDailyBrief() {
     .limit(3);
 
   // Construct context string
-  let contextStr = `Student Name: ${profile?.first_name || "Student"}\n`;
+  let contextStr = `Student Name: Student\n`;
   contextStr += `Current Study Streak: ${profile?.streak || 0} days\n`;
   contextStr += `Overdue Flashcards: ${overdue}\n`;
   contextStr += `Total Flashcard Lapses (Forgotten items): ${totalLapses}\n`;

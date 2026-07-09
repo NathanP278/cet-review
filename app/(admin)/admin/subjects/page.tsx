@@ -30,8 +30,8 @@ export default async function AdminSubjectsPage() {
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <GripVertical className="h-5 w-5 text-slate-400 cursor-grab" />
-                <div className="h-10 w-10 rounded-lg flex items-center justify-center text-2xl" style={{ backgroundColor: `${subject.color}20` }}>
-                  {subject.icon}
+                <div className="h-10 w-10 rounded-lg flex items-center justify-center text-2xl" style={{ backgroundColor: `${(subject as any).color || '#4f46e5'}20` }}>
+                  {subject.icon || "📚"}
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 dark:text-white">{subject.name}</h3>

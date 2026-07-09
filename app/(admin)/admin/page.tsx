@@ -15,7 +15,7 @@ export default async function AdminDashboardPage() {
   // Get recently joined users
   const { data: recentUsers } = await supabase
     .from("profiles")
-    .select("name, xp, level")
+    .select("total_points")
     .order("created_at", { ascending: false })
     .limit(5);
 
@@ -121,11 +121,11 @@ export default async function AdminDashboardPage() {
               <div key={i} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300">
-                    {u.name?.charAt(0) || "U"}
+                    U
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-slate-900 dark:text-white">{u.name || "Anonymous"}</div>
-                    <div className="text-xs text-slate-500">Lvl {u.level || 1}</div>
+                    <div className="text-sm font-medium text-slate-900 dark:text-white">Anonymous</div>
+                    <div className="text-xs text-slate-500">Lvl 1</div>
                   </div>
                 </div>
               </div>

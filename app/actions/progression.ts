@@ -17,20 +17,20 @@ export async function awardXP(action: ActionType, multiplier: number = 1, metada
   // 1. Get current profile to safely increment
   const { data: profile } = await supabase
     .from("profiles")
-    .select("xp, level")
+    .select("total_points")
     .eq("id", user.id)
     .single();
 
   if (!profile) return null;
 
-  const newTotalXP = (profile.xp || 0) + awardedXP;
+  const newTotalXP = (profile.total_points || 0) + awardedXP;
   const newLevel = getLevelFromXP(newTotalXP);
-  const leveledUp = newLevel > (profile.level || 1);
+  const leveledUp = newLevel > 1; // Level not in profile currently
 
   // 2. Update Profile
   await supabase
     .from("profiles")
-    .update({ xp: newTotalXP, level: newLevel })
+    .update({ total_points: newTotalXP })
     .eq("id", user.id);
 
   // 3. Log XP History
@@ -111,7 +111,7 @@ async function updateMissionProgress(userId: string, action: ActionType) {
   for (const um of userMissions) {
     const mission = um.missions as any;
     if (mission.action_type === action) {
-      const newProgress = um.current_progress + 1;
+      const newProgress = (um.current_progress || 0) + 1;
       const isCompleted = newProgress >= mission.target_count;
 
       await supabase
@@ -122,9 +122,9 @@ async function updateMissionProgress(userId: string, action: ActionType) {
       if (isCompleted) {
         // Automatically award XP for mission completion!
         // Using a direct update to avoid infinite loops with awardXP
-        const { data: profile } = await supabase.from("profiles").select("xp").eq("id", userId).single();
+        const { data: profile } = await supabase.from("profiles").select("total_points").eq("id", userId).single();
         if (profile) {
-          await supabase.from("profiles").update({ xp: (profile.xp || 0) + mission.xp_reward }).eq("id", userId);
+          await supabase.from("profiles").update({ total_points: (profile.total_points || 0) + mission.xp_reward }).eq("id", userId);
         }
       }
     }

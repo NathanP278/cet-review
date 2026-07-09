@@ -108,7 +108,7 @@ export interface QuizResult {
  * Submits the user's answers, evaluates them securely against the DB,
  * and updates the SM-2 spaced repetition state.
  */
-export async function submitQuizAttempt(submissions: QuizSubmission[]): Promise<QuizResult> {
+export async function submitQuizAttempt(submissions: QuizSubmission[], totalTimeSeconds: number = 0, filters: any = {}): Promise<QuizResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
@@ -150,8 +150,8 @@ export async function submitQuizAttempt(submissions: QuizSubmission[]): Promise<
       user_id: user.id,
       score,
       total: submissions.length,
-      time_spent_seconds: Math.round(totalTimeSeconds),
-      filters: filters as any,
+      // time_spent_seconds: Math.round(totalTimeSeconds), // Column doesn't exist
+      // filters: filters as any, // Column doesn't exist
     })
     .select()
     .single();

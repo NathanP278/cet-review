@@ -45,7 +45,7 @@ Return EXACTLY a JSON array of objects with the following keys:
       prompt,
       provider: "gemini",
       model: "gemini-2.5-flash",
-      output: rawQuestions,
+      output: JSON.parse(JSON.stringify(rawQuestions)),
       processing_time_ms: Date.now() - startTime
     }).select("id").single();
 
@@ -57,14 +57,15 @@ Return EXACTLY a JSON array of objects with the following keys:
       topic_id: topicId,
       content: q.content,
       choices: q.choices,
-      correct_answer: q.correct_answer,
+      answer: q.correct_answer,
       explanation: q.explanation,
       difficulty: q.difficulty,
-      status: "draft",
-      version: 1,
-      author_id: user.id,
-      generation_id: generationLog.id,
-      quality_score: q.quality_score
+      type: "mcq" as const,
+      // status: "draft", // Column doesn't exist
+      // version: 1, // Column doesn't exist
+      // author_id: user.id, // Column doesn't exist
+      // generation_id: generationLog.id, // Column doesn't exist
+      // quality_score: q.quality_score // Column doesn't exist
     }));
 
     const { error: insertError } = await supabase.from("questions").insert(inserts);
