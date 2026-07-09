@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { CalendarDays, TrendingUp } from "lucide-react";
 import { AccuracyRing } from "@/components/domain/AccuracyRing";
-import { Button } from "@/components/ui/button";
-import { BookOpen, TrendingUp, CalendarDays } from "lucide-react";
+import { ReadinessIntelligenceCenter } from "@/components/dashboard/readiness/ReadinessIntelligenceCenter";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ReviewHeatmap } from "@/components/domain/ReviewHeatmap";
@@ -94,37 +94,11 @@ export default async function DashboardPage() {
       {/* AI Coach */}
       <AICoachCard message={aiBrief} />
 
+      {/* CET Readiness Intelligence Center */}
+      <ReadinessIntelligenceCenter readiness={readinessData} />
+
       {/* Core Metrics Grid */}
-      <DashboardGrid columns={3}>
-        {/* CET Readiness */}
-        <DashboardCard
-          title="CET Readiness"
-          description={
-            readinessMetrics.confidenceScore < 30 
-              ? "Need more data" 
-              : readinessMetrics.trend === "improving" 
-                ? "Trending Upward" 
-                : "Based on AI Model"
-          }
-          accent="primary"
-          isEmpty={mockExamCount === 0}
-          emptyState={<NoMockExamsEmpty />}
-        >
-          <div className="flex flex-col items-center justify-center py-6 gap-4">
-            <AccuracyRing accuracy={cetReadiness} size={140} label="Readiness" />
-            <div className="flex flex-col items-center gap-1 text-sm text-[var(--muted)]">
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-[var(--color-secondary)]" />
-                <span>{mockExamCount} Exams Taken</span>
-              </div>
-              {readinessMetrics.estimatedExamDayScore > 0 && (
-                <span className="text-xs">
-                  Est. Exam Day Score: <strong className="text-[var(--foreground)]">{readinessMetrics.estimatedExamDayScore}%</strong>
-                </span>
-              )}
-            </div>
-          </div>
-        </DashboardCard>
+      <DashboardGrid columns={2}>
 
         {/* Memory Health */}
         <DashboardCard
