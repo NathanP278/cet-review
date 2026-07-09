@@ -25,6 +25,17 @@ import { createClient } from "@/lib/supabase/server";
 export type ConfidenceLevel = "High" | "Medium" | "Low" | "Insufficient Data";
 export type ReadinessTrend = "improving" | "stable" | "declining" | "unknown";
 
+export interface ReadinessRecommendation {
+  id: string;
+  title: string;
+  description: string;
+  impact: number;
+  estimatedTimeMinutes: number;
+  difficulty: "Low" | "Medium" | "High";
+  actionUrl: string;
+  actionLabel: string;
+}
+
 export interface ReadinessMetrics {
   overallScore: number;
   confidenceScore: number;
@@ -34,7 +45,29 @@ export interface ReadinessMetrics {
   trend: ReadinessTrend;
   isCalibrated: boolean;
   
-  // Detailed breakdown for transparency and future insights (F2.2.5)
+  // The Three Readiness Dimensions (F2.2.5)
+  dimensions: {
+    knowledge: number; // 0-100
+    memory: number;    // 0-100
+    exam: number;      // 0-100
+  };
+
+  // Readiness Potential Engine (F2.2.5)
+  potential: {
+    currentReadiness: number;
+    potentialReadiness: number;
+    potentialGain: number;
+    recommendations: ReadinessRecommendation[];
+    opportunityAnalysis: {
+      lostToOverdueReviews: number;
+      lostToWeakRetention: number;
+      lostToInconsistency: number;
+      lostToLowMockExposure: number;
+      lostToUnfinishedTopics: number;
+    };
+  };
+  
+  // Detailed breakdown for transparency
   breakdown: {
     mockExams: number;      // out of 30
     subjectMastery: number; // out of 25
@@ -203,6 +236,37 @@ export async function calculateReadiness(userId: string): Promise<ReadinessMetri
   const pressurePenalty = confidenceLevel === "High" ? 0.98 : confidenceLevel === "Medium" ? 0.95 : 0.90;
   const estimatedExamDayScore = Math.max(0, Math.min(Math.round(overallScore * pressurePenalty), 100));
 
+  // 8. Calculate The Three Dimensions (F2.2.5)
+  // Knowledge: Focuses on mastery, quizzes, and learning velocity
+  const knowledgeScore = Math.round(
+    ((subjectMasteryScore / 25) * 50) + 
+    ((practiceQuizScore / 10) * 30) + 
+    ((learningVelocityScore / 3) * 20)
+  );
+
+  // Memory: Focuses on retention and review completion
+  const memoryScore = Math.round(
+    ((memoryRetentionScore / 15) * 70) + 
+    ((reviewCompletionScore / 5) * 30)
+  );
+
+  // Exam: Focuses on mock exams, consistency, and study time
+  const examScore = Math.round(
+    ((mockExamScore / 30) * 60) + 
+    ((consistencyScore / 8) * 30) + 
+    ((studyTimeScore / 2) * 10)
+  );
+
+  // 9. Calculate Readiness Potential Engine (F2.2.5)
+  const { potential, opportunityAnalysis, recommendations } = calculateReadinessPotential(
+    overallScore,
+    userCards || [],
+    subjectMasteries || [],
+    mockExams || [],
+    reviewHistory || [],
+    now
+  );
+
   return {
     overallScore,
     confidenceScore,
@@ -211,6 +275,18 @@ export async function calculateReadiness(userId: string): Promise<ReadinessMetri
     subjectReadiness,
     trend,
     isCalibrated: true,
+    dimensions: {
+      knowledge: Math.max(0, Math.min(knowledgeScore, 100)),
+      memory: Math.max(0, Math.min(memoryScore, 100)),
+      exam: Math.max(0, Math.min(examScore, 100)),
+    },
+    potential: {
+      currentReadiness: overallScore,
+      potentialReadiness: potential,
+      potentialGain: potential - overallScore,
+      recommendations,
+      opportunityAnalysis,
+    },
     breakdown: {
       mockExams: Number(mockExamScore.toFixed(2)),
       subjectMastery: Number(subjectMasteryScore.toFixed(2)),
@@ -639,6 +715,17 @@ function generateUncalibratedMetrics(mockExamsTaken: number, totalQuestionsAnswe
     subjectReadiness: {},
     trend: "unknown",
     isCalibrated: false,
+    dimensions: { knowledge: 0, memory: 0, exam: 0 },
+    potential: {
+      currentReadiness: 0,
+      potentialReadiness: 0,
+      potentialGain: 0,
+      recommendations: [],
+      opportunityAnalysis: {
+        lostToOverdueReviews: 0, lostToWeakRetention: 0, lostToInconsistency: 0,
+        lostToLowMockExposure: 0, lostToUnfinishedTopics: 0
+      }
+    },
     breakdown: {
       mockExams: 0, subjectMastery: 0, memoryRetention: 0, practiceQuizzes: 0,
       consistency: 0, reviewCompletion: 0, learningVelocity: 0, studyTime: 0, confidence: 0
@@ -648,5 +735,131 @@ function generateUncalibratedMetrics(mockExamsTaken: number, totalQuestionsAnswe
       totalQuestionsAnswered,
       daysActive: 0
     }
+  };
+}
+
+// ============================================================================
+// READINESS POTENTIAL ENGINE (F2.2.5)
+// ============================================================================
+
+function calculateReadinessPotential(
+  currentScore: number,
+  userCards: any[],
+  subjectMasteries: any[],
+  mockExams: any[],
+  reviewHistory: any[],
+  now: Date
+) {
+  const recommendations: ReadinessRecommendation[] = [];
+  const opportunityAnalysis = {
+    lostToOverdueReviews: 0,
+    lostToWeakRetention: 0,
+    lostToInconsistency: 0,
+    lostToLowMockExposure: 0,
+    lostToUnfinishedTopics: 0,
+  };
+
+  let totalPotentialGain = 0;
+
+  // 1. Overdue Reviews Opportunity
+  let overdueCards = 0;
+  userCards.forEach(card => {
+    if (card.next_review && new Date(card.next_review) <= now) overdueCards++;
+  });
+
+  if (overdueCards > 0) {
+    // Max 5% gain from clearing queue
+    const impact = Math.min(Number((overdueCards * 0.05).toFixed(1)), 5.0);
+    opportunityAnalysis.lostToOverdueReviews = impact;
+    totalPotentialGain += impact;
+
+    recommendations.push({
+      id: "clear-queue",
+      title: "Complete today's review queue",
+      description: `You have ${overdueCards} cards waiting for review. Clearing them will immediately improve your memory retention score.`,
+      impact,
+      estimatedTimeMinutes: Math.ceil(overdueCards * 0.25), // ~15s per card
+      difficulty: overdueCards > 50 ? "Medium" : "Low",
+      actionUrl: "/review/session",
+      actionLabel: "Start Review"
+    });
+  }
+
+  // 2. Mock Exam Exposure Opportunity
+  if (mockExams.length < 3) {
+    // Max 8% gain from taking more mock exams
+    const impact = Number(((3 - mockExams.length) * 2.6).toFixed(1));
+    opportunityAnalysis.lostToLowMockExposure = impact;
+    totalPotentialGain += impact;
+
+    recommendations.push({
+      id: "take-mock",
+      title: "Take a full mock exam",
+      description: "Mock exams have the highest impact on your readiness score. Taking one will significantly boost your exam confidence.",
+      impact: 4.8, // Specific impact for taking ONE exam
+      estimatedTimeMinutes: 120,
+      difficulty: "High",
+      actionUrl: "/exam",
+      actionLabel: "Take Exam"
+    });
+  }
+
+  // 3. Weak Subjects Opportunity
+  const weakSubjects = subjectMasteries.filter(s => s.mastery_percentage !== null && s.mastery_percentage < 60);
+  if (weakSubjects.length > 0) {
+    // Sort by weakest first
+    weakSubjects.sort((a, b) => a.mastery_percentage - b.mastery_percentage);
+    const weakest = weakSubjects[0];
+    
+    const impact = Number(((60 - weakest.mastery_percentage) * 0.1).toFixed(1));
+    opportunityAnalysis.lostToUnfinishedTopics = impact;
+    totalPotentialGain += impact;
+
+    recommendations.push({
+      id: `improve-${weakest.subject_id}`,
+      title: `Improve ${weakest.subject_name || 'weakest subject'} mastery`,
+      description: `Your mastery in this subject is holding you back. Focus on practice quizzes to raise it above 60%.`,
+      impact,
+      estimatedTimeMinutes: 45,
+      difficulty: "Medium",
+      actionUrl: `/subjects/${weakest.subject_id}`,
+      actionLabel: "Study Subject"
+    });
+  }
+
+  // 4. Inconsistency Opportunity
+  const activeDays = new Set<string>();
+  reviewHistory.forEach(r => {
+    const dateStr = new Date(r.reviewed_at).toISOString().split('T')[0];
+    activeDays.add(dateStr);
+  });
+  
+  if (activeDays.size < 10) { // Less than 10 active days in last 30
+    const impact = 3.2;
+    opportunityAnalysis.lostToInconsistency = impact;
+    totalPotentialGain += impact;
+
+    recommendations.push({
+      id: "build-streak",
+      title: "Study for 3 consecutive days",
+      description: "Consistency is key. Studying a little bit every day builds a stronger foundation than marathon sessions.",
+      impact,
+      estimatedTimeMinutes: 15,
+      difficulty: "Low",
+      actionUrl: "/practice",
+      actionLabel: "Practice Now"
+    });
+  }
+
+  // Sort recommendations by highest impact
+  recommendations.sort((a, b) => b.impact - a.impact);
+
+  // Cap potential readiness at 100%
+  const potentialReadiness = Math.min(Math.round(currentScore + totalPotentialGain), 100);
+
+  return {
+    potential: potentialReadiness,
+    opportunityAnalysis,
+    recommendations
   };
 }
