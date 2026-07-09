@@ -264,7 +264,7 @@ export function ConfidenceAnalysis({ readiness }: ConfidenceAnalysisProps) {
             </div>
             <div>
               <p className="font-medium text-[var(--foreground)] mb-1">
-                Low Confidence (<60%)
+                Low Confidence (&lt;60%)
               </p>
               <p className="text-[var(--muted)]">
                 Predictions should be treated as preliminary. More assessments are needed.

@@ -138,7 +138,7 @@ export function ReadinessExplainer() {
             <div className="flex items-start gap-3">
               <div className="h-5 w-5 rounded-full border-2 border-yellow-600 dark:border-yellow-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-[var(--foreground)]">Low Confidence (<60%)</p>
+                <p className="font-semibold text-[var(--foreground)]">Low Confidence (&lt;60%)</p>
                 <p className="text-xs mt-1">Limited data available. Predictions should be treated as preliminary estimates.</p>
               </div>
             </div>
